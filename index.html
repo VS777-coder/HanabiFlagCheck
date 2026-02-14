@@ -2,180 +2,617 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>生物学的適応シミュレーター：新種（新ハナビ）</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Biological Adaptation Simulator - Shin-Hanabi Custom</title>
     <style>
-        :root { --cell-size: 60px; }
-        body { font-family: sans-serif; background: #222; color: #ddd; display: flex; flex-direction: column; align-items: center; }
-        .control-panel { background: #333; padding: 20px; border-radius: 8px; margin: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-        .reel-container { display: flex; gap: 10px; background: #000; padding: 20px; border: 4px solid #444; border-radius: 10px; }
-        .reel-window { width: calc(var(--cell-size) * 1.5); height: calc(var(--cell-size) * 3); overflow: hidden; position: relative; border: 2px solid #666; background: #fff; }
-        .reel { position: absolute; width: 100%; transition: transform 0.1s ease-out; display: flex; flex-direction: column-reverse; }
-        .symbol { height: var(--cell-size); width: 100%; background-repeat: no-repeat; background-position: center; background-size: contain; }
-        .result-panel { margin-top: 20px; padding: 15px; background: #333; border-radius: 5px; min-width: 300px; text-align: center; }
-        select, button { padding: 8px; background: #444; color: #fff; border: 1px solid #666; cursor: pointer; }
-        .tab-group { display: flex; gap: 5px; margin-bottom: 10px; grid-column: span 3; }
-        .tab { padding: 10px 20px; background: #444; border: none; color: #aaa; cursor: pointer; }
-        .tab.active { background: #666; color: #fff; font-weight: bold; }
+        :root { --c-bg: #111; --c-text: #eee; --c-accent: #ffd700; }
+        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+        html, body { width: 100%; height: 100%; margin: 0; padding: 0; background: var(--c-bg); color: var(--c-text); font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; overflow: hidden; display: flex; flex-direction: column; }
+        
+        .controls { padding: 5px; flex-shrink: 0; background: #222; border-bottom: 1px solid #444; }
+        .tab-group { display: flex; gap: 4px; margin-bottom: 5px; overflow-x: auto; }
+        .tab { flex: 1; padding: 8px 4px; text-align: center; font-size: 11px; font-weight: bold; cursor: pointer; border-radius: 4px; border: 1px solid #444; opacity: 0.5; transition: all 0.2s; white-space: nowrap; min-width: 60px; }
+        .tab.active { opacity: 1; border-color: #888; box-shadow: 0 0 5px rgba(255,255,255,0.2); }
+        
+        .stop-tab.active#t-left { background: #ffb7ce; color: #800020; }
+        .stop-tab.active#t-middle { background: #b3e5fc; color: #003c8f; }
+        .stop-tab.active#t-right { background: #c8e6c9; color: #1b5e20; }
+        
+        .state-tab#s-bonus_unestablished.active { background: #fff; color: #000; }
+        .state-tab#s-don_big_established.active { background: #304ffe; color: #fff; }
+        .state-tab#s-seven_big_established.active { background: #d50000; color: #fff; }
+        .state-tab#s-reg_bonus_established.active { background: #222; color: #fff; border: 1px solid #fff; }
+
+        .workspace { 
+            display: flex; 
+            flex-direction: row-reverse; 
+            flex: 1; 
+            overflow: hidden; 
+            padding: 10px; 
+            gap: 10px; 
+            align-items: flex-start; 
+            justify-content: center;
+        }
+        
+        .reel-container { 
+            width: 100px; 
+            height: 420px; 
+            position: relative; 
+            background: #000; 
+            border: 2px solid #333; 
+            border-radius: 4px; 
+            flex-shrink: 0; 
+            overflow: hidden; 
+            touch-action: none; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        
+        .reel-strip { position: absolute; width: 100%; top: 0; left: 0; will-change: transform; }
+        
+        .symbol { height: 60px; display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); position: relative; font-size: 10px; box-sizing: border-box; }
+        
+        .sym-idx { 
+            width: 26px; 
+            flex-shrink: 0;
+            text-align: center; 
+            color: var(--c-accent); 
+            font-weight: bold; 
+            height: 100%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            background: #111; 
+            border-right: 1px solid #333;
+            z-index: 2; 
+            font-size: 11px; 
+        }
+        
+        .sym-bg { 
+            position: absolute; 
+            top: 0; 
+            left: 26px; 
+            right: 0; 
+            bottom: 0; 
+            z-index: 1; 
+            background-color: #000; 
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        .target-box { 
+            position: absolute; 
+            top: 120px; 
+            left: 0; 
+            width: 100%; 
+            height: 180px; 
+            border: 3px solid #ff0000; 
+            pointer-events: none; 
+            z-index: 10; 
+            box-shadow: inset 0 0 10px rgba(255,0,0,0.2); 
+        }
+
+        .results { 
+            flex: 1; 
+            height: 420px; 
+            background: #1a1a1a; 
+            border: 1px solid #333; 
+            overflow-y: auto; 
+            border-radius: 4px; 
+            display: flex; 
+            flex-direction: column; 
+        }
+        .res-row { display: flex; border-bottom: 1px solid #333; min-height: 40px; align-items: center; padding: 0 8px; font-family: monospace; }
+        .res-name { width: 90px; font-size: 11px; font-weight: bold; flex-shrink: 0; line-height: 1.2; }
+        .res-data { flex: 1; text-align: right; font-size: 13px; color: #ddd; word-break: break-all; }
+        
+        .res-slip { 
+            display: inline-block; 
+            padding: 2px 6px; 
+            margin-left: 4px; 
+            background: #333; 
+            border-radius: 3px; 
+            font-weight: bold; 
+            color: #fff;
+            min-width: 25px;
+            text-align: center;
+        }
+
+        .res-row:nth-child(odd) { background: rgba(255,255,255,0.02); }
+        
+        .f-bell { border-left: 4px solid #ffeb3b; color: #ffeb3b; }
+        .f-suika { border-left: 4px solid #00e676; color: #00e676; }
+        .f-cher { border-left: 4px solid #ff4081; color: #ff4081; }
+        .f-rep { border-left: 4px solid #80d8ff; color: #80d8ff; }
+        .f-hazure { border-left: 4px solid #888; color: #aaa; }
+        .f-tok { border-left: 4px solid #e040fb; color: #e040fb; }
+
+        #error-log { display: none; position: absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); color:red; z-index:9999; padding:20px; white-space: pre-wrap; font-family:monospace; }
     </style>
 </head>
 <body>
-
-<div class="control-panel">
-    <div class="tab-group" id="state-tabs">
-        <button class="tab active" data-state="ボーナス未成立">ボーナス未成立</button>
-        <button class="tab" data-state="ドンビッグ成立">ドンビッグ成立</button>
-        <button class="tab" data-state="七ビッグ成立">七ビッグ成立</button>
-        <button class="tab" data-state="Regボーナス成立">Regボーナス成立</button>
+    <div id="error-log"></div>
+    <div class="controls">
+        <div class="tab-group">
+            <div id="t-left" class="stop-tab tab active" onclick="app.setStop('left')">左リール</div>
+            <div id="t-middle" class="stop-tab tab" onclick="app.setStop('middle')">中リール</div>
+            <div id="t-right" class="stop-tab tab" onclick="app.setStop('right')">右リール</div>
+        </div>
+        <div class="tab-group">
+            <div id="s-bonus_unestablished" class="state-tab tab active" onclick="app.setState('bonus_unestablished')">ボーナス未成立</div>
+            <div id="s-don_big_established" class="state-tab tab" onclick="app.setState('don_big_established')">ドンビッグ成立</div>
+            <div id="s-seven_big_established" class="state-tab tab" onclick="app.setState('seven_big_established')">七ビッグ成立</div>
+            <div id="s-reg_bonus_established" class="state-tab tab" onclick="app.setState('reg_bonus_established')">Regボーナス成立</div>
+        </div>
     </div>
 
-    <div>
-        <label>リール選択:</label><br>
-        <select id="reel-select">
-            <option value="0">左リール</option>
-            <option value="1">中リール</option>
-            <option value="2">右リール</option>
-        </select>
+    <div class="workspace">
+        <div id="touch-area" class="reel-container">
+            <div class="target-box"></div>
+            <div id="reel-strip" class="reel-strip"></div>
+        </div>
+        <div class="results" id="result-list"></div>
     </div>
-    <div>
-        <label>停止位置 (1-21):</label><br>
-        <input type="number" id="pos-input" min="1" max="21" value="1" style="width: 60px; padding: 7px; background: #444; color: #fff; border: 1px solid #666;">
-    </div>
-    <div>
-        <label>成立役 (環境因子):</label><br>
-        <select id="flag-select"></select>
-    </div>
-</div>
-
-<div class="reel-container">
-    <div class="reel-window"><div class="reel" id="reel-0"></div></div>
-    <div class="reel-window"><div class="reel" id="reel-1"></div></div>
-    <div class="reel-window"><div class="reel" id="reel-2"></div></div>
-</div>
-
-<div class="result-panel">
-    <div id="slide-result" style="font-size: 24px; color: #ffeb3b;">滑りコマ数: -</div>
-    <div id="debug-info" style="font-size: 12px; color: #888; margin-top: 10px;"></div>
-</div>
 
 <script>
-// --- システム定数定義 ---
-const REEL_NAMES = ["左リール", "中リール", "右リール"];
-const FLAG_ORDER = ["ハズレ", "通リプ", "JACリプ", "RTリプ", "ベルA", "ベルB", "氷A", "氷B", "チェA1", "チェA2", "チェB", "特A", "特B", "特C", "特D", "特E"];
-
-// 生物データベース (DNA)
-const biologicalDatabase = {
-    "左リール": {}, "中リール": {}, "右リール": {}
+window.onerror = function(msg, url, line) {
+    const log = document.getElementById('error-log');
+    log.style.display = 'block';
+    log.innerText = `System Error:\n${msg}\nLine: ${line}`;
 };
 
-// --- データ注入関数 ---
-function parseAndRegister(reelName, stateName, rawData) {
-    const lines = rawData.trim().split('\n');
-    biologicalDatabase[reelName][stateName] = {};
+const NAME_MAP = {
+    "left": "left", "middle": "middle", "right": "right",
+    "bonus_unestablished": "bonus_unestablished",
+    "don_big_established": "don_big_established",
+    "seven_big_established": "seven_big_established",
+    "reg_bonus_established": "reg_bonus_established"
+};
+
+const REEL_ASSETS = { left: "reel1.png", middle: "reel2.png", right: "reel3.png" };
+
+const FLAG_INFO = {
+    hazure: { n: "ハズレ", c: "hazure" }, rep_normal: { n: "通常リプ", c: "rep" }, rep_jac: { n: "JACリプ", c: "rep" }, rep_rt: { n: "RTリプ", c: "rep" },
+    bell_a: { n: "ベルA", c: "bell" }, bell_b: { n: "ベルB", c: "bell" }, sui_a: { n: "氷A", c: "suika" }, sui_b: { n: "氷B", c: "suika" },
+    cher_a1: { n: "チェA1", c: "cher" }, cher_a2: { n: "チェA2", c: "cher" }, cher_b: { n: "チェB", c: "cher" },
+    spec_a: { n: "特A", c: "tok" }, spec_b: { n: "特B", c: "tok" }, spec_c: { n: "特C", c: "tok" }, spec_d: { n: "特D", c: "tok" }, spec_e: { n: "特E", c: "tok" }
+};
+
+// リール配列は旧種の定義を維持しつつ、番号ベースで制御
+const REEL_SYMBOLS = {
+    left: Array(21).fill("Sym"), middle: Array(21).fill("Sym"), right: Array(21).fill("Sym")
+};
+
+class ReverseAuditor {
+    constructor() { this.db = { left: {}, middle: {}, right: {} }; }
     
-    lines.forEach(line => {
-        const parts = line.trim().split(/\s+/);
-        const pos = parseInt(parts[0]);
-        const behaviors = parts.slice(1).map(v => v === "null" ? null : parseInt(v));
-        biologicalDatabase[reelName][stateName][pos] = behaviors;
-    });
-}
+    register(reelName, stateName, rawText) {
+        const reel = NAME_MAP[reelName];
+        const state = NAME_MAP[stateName];
+        if (!this.db[reel][state]) this.db[reel][state] = {};
+        
+        const flagOrder = ["hazure", "rep_normal", "rep_jac", "rep_rt", "bell_a", "bell_b", "sui_a", "sui_b", "cher_a1", "cher_a2", "cher_b", "spec_a", "spec_b", "spec_c", "spec_d", "spec_e"];
+        flagOrder.forEach(f => this.db[reel][state][f] = new Array(22).fill(null));
 
-// --- データの登録 (ご提示いただいた全DNA) ---
-// 左リール
-parseAndRegister("左リール", "ボーナス未成立", `21 1 2 1 1 2 3 2 2 4 4 4 null null null null null\n20 0 0 2 0 3 4 0 0 1 1 1 null null null null null\n19 0 1 3 1 4 4 0 0 2 2 2 null null null null null\n18 1 1 0 1 0 0 2 2 3 3 3 null null null null null\n17 0 0 1 0 0 1 1 1 4 4 4 null null null null null\n16 2 1 2 1 1 2 3 3 0 0 0 null null null null null\n15 3 2 3 2 2 3 3 3 1 1 1 null null null null null\n14 3 3 1 3 3 4 4 4 0 0 2 null null null null null\n13 0 4 2 4 4 4 0 0 1 1 1 null null null null null\n12 1 0 3 0 0 1 1 1 2 2 4 null null null null null\n11 0 1 0 0 1 2 1 1 3 3 3 null null null null null\n10 1 0 1 1 2 3 2 2 4 4 4 null null null null null\n9 2 1 2 1 3 4 2 2 1 1 1 null null null null null\n8 0 2 0 2 4 0 3 3 2 2 2 null null null null null\n7 1 0 1 0 0 0 4 4 3 3 3 null null null null null\n6 2 1 2 1 2 1 1 1 0 0 0 null null null null null\n5 3 2 3 2 2 3 3 3 1 1 1 null null null null null\n4 4 3 1 3 3 4 3 3 0 0 2 null null null null null\n3 0 4 2 4 4 4 0 0 1 1 1 null null null null null\n2 1 0 3 0 0 0 0 0 2 2 4 null null null null null\n1 1 1 0 0 1 2 1 1 3 3 3 null null null null null`);
-parseAndRegister("左リール", "ドンビッグ成立", `21 3 2 1 2 2 2 3 3 4 4 4 3 1 1 3 3\n20 4 0 2 0 3 4 4 4 1 1 1 4 0 2 4 4\n19 0 1 0 1 4 4 0 0 2 2 2 4 0 0 2 0\n18 1 1 1 1 0 0 2 2 3 3 3 1 1 1 2 1\n17 0 0 1 0 0 1 1 1 4 4 4 1 2 2 4 0\n16 2 1 3 1 1 1 3 3 0 0 0 1 3 2 3 2\n15 2 2 3 2 2 3 3 3 1 1 1 4 3 4 3 2\n14 3 3 4 3 3 4 4 4 0 0 2 4 4 4 3 3\n13 0 4 0 4 0 4 0 0 1 1 1 0 0 0 0 0\n12 1 0 0 0 0 1 1 1 2 2 4 1 1 1 1 1\n11 0 1 1 1 1 1 0 0 3 3 3 0 0 0 0 0\n10 1 0 2 0 3 2 1 1 4 4 4 1 1 1 0 1\n9 1 1 4 1 4 4 2 2 1 1 1 2 2 1 2 1\n8 1 2 0 2 0 0 3 3 2 2 2 3 2 1 1 1\n7 1 0 1 0 0 0 4 4 3 3 1 4 2 3 4 3\n6 1 1 2 1 1 1 1 1 0 0 0 2 4 3 3 3\n5 3 2 2 2 3 2 2 2 1 1 1 2 4 4 4 4\n4 3 3 4 3 3 3 3 3 0 0 0 4 4 3 4 3\n3 0 4 0 4 0 4 0 0 1 1 1 0 0 0 0 0\n2 1 0 1 0 0 0 1 1 2 2 2 1 1 1 1 1\n1 2 1 0 1 1 1 2 2 3 3 3 2 0 0 2 2`);
-parseAndRegister("左リール", "七ビッグ成立", `21 1 2 0 2 2 3 2 2 4 4 4 2 1 1 1 1\n20 0 1 1 0 3 4 0 0 0 1 1 3 0 0 0 0\n19 0 0 1 1 4 4 0 0 1 2 2 0 0 1 0 0\n18 1 2 1 1 0 0 0 0 2 3 3 0 1 2 1 1\n17 1 0 0 0 0 1 1 1 3 4 4 0 2 1 0 0\n16 1 1 1 1 1 1 3 3 0 0 0 3 3 2 3 3\n15 4 2 0 2 2 2 3 3 1 1 1 2 3 3 3 3\n14 4 3 3 3 3 4 4 4 2 0 2 3 4 4 3 3\n13 4 4 4 4 4 0 0 0 1 1 1 0 4 0 4 0\n12 1 0 1 0 0 1 1 1 4 2 4 0 1 1 1 1\n11 2 1 4 1 1 2 1 1 3 3 3 1 0 2 0 2\n10 3 2 1 0 2 3 2 2 4 4 4 1 1 1 1 1\n9 4 1 1 1 3 4 2 2 2 1 1 2 2 2 2 2\n8 0 4 3 2 4 0 3 3 3 2 2 3 2 3 2 2\n7 0 0 0 0 0 0 4 4 4 3 3 4 2 3 2 2\n6 2 4 1 1 2 2 1 1 0 0 0 1 4 3 4 4\n5 2 2 0 2 2 2 2 2 1 1 1 3 4 4 4 4\n4 4 3 1 3 3 4 3 3 2 0 2 3 4 3 4 4\n3 0 4 4 4 4 0 0 0 1 1 1 0 0 0 0 0\n2 1 0 3 0 0 1 0 0 4 2 4 0 1 1 1 1\n1 0 1 4 1 1 2 1 1 3 3 3 1 0 0 0 0`);
-parseAndRegister("左リール", "Regボーナス成立", `21 1 2 2 2 2 3 2 2 4 4 4 1 1 1 1 1\n20 0 1 0 0 3 4 0 0 1 1 1 0 0 0 2 0\n19 0 0 1 1 4 4 0 0 2 2 2 0 1 1 0 0\n18 1 2 1 1 0 0 0 0 3 3 3 0 2 2 1 1\n17 0 0 0 0 0 1 1 1 4 4 4 1 1 1 0 0\n16 3 1 1 1 1 1 3 3 0 0 0 2 2 2 2 3\n15 3 2 2 2 2 2 3 3 1 1 1 3 3 3 2 3\n14 3 3 3 3 3 4 4 4 0 0 0 4 4 4 3 3\n13 0 4 4 4 4 0 0 0 1 1 1 0 0 0 0 0\n12 1 0 0 0 0 1 1 1 2 2 2 1 1 1 1 1\n11 2 1 1 1 1 2 2 2 3 3 3 2 0 2 0 0\n10 3 2 0 0 2 3 3 3 4 4 4 3 1 1 1 1\n9 4 1 1 1 3 4 4 4 4 4 4 4 2 2 1 2\n8 2 4 2 2 4 0 3 3 2 2 2 3 3 3 1 3\n7 2 0 0 0 0 0 4 4 3 3 1 4 3 3 3 4\n6 2 4 1 1 2 2 1 1 0 0 0 3 3 3 3 4\n5 2 2 2 2 2 2 2 2 1 1 1 4 4 4 4 4\n4 4 3 3 3 3 4 3 3 0 0 2 3 3 3 3 4\n3 0 4 4 4 4 0 0 0 1 1 1 0 0 0 0 0\n2 1 0 0 0 0 1 0 0 2 2 4 1 1 1 1 1\n1 0 1 1 1 1 2 1 1 3 3 3 0 0 0 0 0`);
-
-// 中リール
-parseAndRegister("中リール", "ボーナス未成立", `21 4 1 1 1 0 0 2 2 4 4 4 null null null null null\n20 0 2 2 2 1 1 3 3 0 0 0 null null null null null\n19 1 0 0 0 2 2 4 4 1 1 1 null null null null null\n18 2 1 1 1 0 0 2 2 2 2 2 null null null null null\n17 0 2 2 2 1 1 0 0 0 0 0 null null null null null\n16 1 3 3 3 2 2 0 0 1 1 1 null null null null null\n15 0 4 4 4 3 3 0 0 0 0 0 null null null null null\n14 1 0 0 0 4 4 2 2 1 1 1 null null null null null\n13 2 1 1 1 0 0 2 2 2 2 2 null null null null null\n12 3 2 2 2 1 1 4 4 3 3 3 null null null null null\n11 1 3 3 3 2 2 4 4 0 0 0 null null null null null\n10 1 0 0 0 3 3 2 2 1 1 1 null null null null null\n9 3 1 1 1 0 0 3 3 2 2 2 null null null null null\n8 0 2 2 2 1 1 0 0 3 3 3 null null null null null\n7 0 3 3 3 2 2 1 1 4 4 0 null null null null null\n6 1 0 0 0 3 3 2 2 2 2 1 null null null null null\n5 2 1 1 1 0 0 3 3 3 3 2 null null null null null\n4 3 2 2 2 1 1 0 0 0 0 3 null null null null null\n3 1 3 3 3 2 2 1 1 1 1 4 null null null null null\n2 2 4 4 4 3 3 0 0 2 2 2 null null null null null\n1 1 0 0 0 4 4 1 1 3 3 3 null null null null null`);
-parseAndRegister("中リール", "ドンビッグ成立", `21 2 1 1 1 0 0 2 2 4 4 4 4 2 2 2 4\n20 3 2 2 2 1 1 3 3 0 0 0 4 0 4 0 0\n19 0 0 0 0 2 2 4 4 1 1 1 4 1 4 1 1\n18 1 1 1 1 0 0 1 1 2 2 2 2 2 2 2 2\n17 2 2 2 2 1 1 0 0 0 0 0 3 3 3 3 0\n16 1 3 3 3 2 2 1 1 1 1 1 4 0 0 0 0\n15 1 4 4 4 3 3 1 1 0 0 0 0 0 0 0 0\n14 1 0 0 0 4 4 1 1 1 1 1 1 1 1 1 1\n13 3 1 1 1 0 0 3 3 2 2 2 2 2 2 2 2\n12 3 2 2 2 1 1 3 3 3 3 3 0 3 3 3 2\n11 0 3 3 3 2 2 4 4 0 0 0 0 4 4 4 4\n10 2 0 0 0 3 3 2 2 1 1 1 0 4 4 4 4\n9 2 1 1 1 0 0 2 2 2 2 2 1 0 0 2 1\n8 0 2 2 2 1 1 0 0 0 0 0 0 0 0 0 0\n7 0 3 3 3 2 2 0 0 0 0 0 0 1 1 0 0\n6 1 0 0 0 3 3 1 1 1 1 1 2 0 0 1 2\n5 1 1 1 1 0 0 1 1 3 3 3 3 1 1 2 3\n4 3 2 2 2 1 1 0 0 3 3 3 0 2 2 3 2\n3 3 3 3 3 2 2 1 1 4 4 4 0 3 3 4 4\n2 4 4 4 4 3 3 0 0 4 4 4 1 4 4 4 4\n1 1 0 0 0 4 4 1 1 3 3 3 3 1 1 1 3`);
-parseAndRegister("中リール", "七ビッグ成立", `21 4 1 1 1 0 0 4 4 4 4 4 2 2 2 2 2\n20 0 2 2 2 1 1 4 4 0 0 0 3 0 3 3 3\n19 1 0 0 0 2 2 4 4 1 1 1 4 1 4 0 0\n18 2 1 1 1 0 0 2 2 2 2 2 1 2 1 1 1\n17 3 2 2 2 1 1 0 0 0 0 0 2 3 2 2 0\n16 0 3 3 3 2 2 0 0 0 0 0 0 0 0 0 0\n15 0 4 4 4 3 3 0 0 0 0 0 1 0 1 1 1\n14 1 0 0 0 4 4 1 1 1 1 1 2 1 2 2 2\n13 2 1 1 1 0 0 2 2 2 2 2 3 2 3 3 3\n12 2 2 2 2 1 1 4 4 3 3 3 4 3 4 4 4\n11 4 3 3 3 2 2 4 4 4 4 4 4 4 4 4 4\n10 4 0 0 0 3 3 4 4 4 4 4 4 4 4 4 4\n9 1 1 1 1 0 0 1 1 2 2 2 0 0 0 0 0\n8 3 2 2 2 1 1 3 3 3 3 3 0 0 0 0 0\n7 4 3 3 3 2 2 4 4 4 4 4 1 1 1 1 1\n6 2 0 0 0 3 3 2 2 1 1 1 2 0 2 2 2\n5 3 1 1 1 0 0 3 3 3 3 3 3 1 3 3 3\n4 2 2 2 2 1 1 0 0 3 3 3 0 2 0 0 0\n3 0 3 3 3 2 2 0 0 1 1 1 1 3 1 1 1\n2 1 4 4 4 3 3 1 1 2 2 2 0 4 0 0 0\n1 3 0 0 0 4 4 3 3 3 3 3 1 1 1 1 1`);
-parseAndRegister("中リール", "Regボーナス成立", `21 2 1 1 1 0 0 2 2 4 4 4 2 2 2 2 2\n20 0 2 2 2 1 1 4 4 0 0 0 3 3 3 3 3\n19 1 0 0 0 2 2 4 4 1 1 1 4 4 4 4 4\n18 2 1 1 1 0 0 2 2 2 2 2 2 2 2 2 2\n17 3 2 2 2 1 1 0 0 0 0 0 3 3 3 3 0\n16 0 3 3 3 2 2 0 0 0 0 0 0 0 0 0 0\n15 0 4 4 4 3 3 0 0 0 0 0 0 0 0 0 0\n14 2 0 0 0 4 4 2 2 1 1 1 1 1 1 1 1\n13 2 1 1 1 0 0 2 2 2 2 2 2 2 2 2 2\n12 3 2 2 2 1 1 3 3 3 3 3 3 3 3 3 3\n11 0 3 3 3 2 2 4 4 0 0 0 4 4 4 4 4\n10 1 0 0 0 3 3 1 1 1 1 1 1 4 4 4 4\n9 2 1 1 1 0 0 2 2 2 2 2 2 0 0 2 2\n8 3 2 2 2 1 1 3 3 3 3 3 3 0 0 3 3\n7 4 3 3 3 2 2 4 4 4 4 4 4 1 1 4 4\n6 2 0 0 0 3 3 2 2 1 1 1 0 0 0 0 0\n5 3 1 1 1 0 0 3 3 3 3 3 1 1 1 1 1\n4 0 2 2 2 1 1 0 0 3 3 3 0 2 2 2 2\n3 3 3 3 3 2 2 1 1 4 4 4 1 3 3 3 3\n2 0 4 4 4 3 3 0 0 2 2 2 0 4 4 0 0\n1 1 0 0 0 4 4 1 1 3 3 3 3 3 3 3 3`);
-
-// 右リール
-parseAndRegister("右リール", "ボーナス未成立", `21 1 0 1 0 3 3 1 1 1 1 3 null null null null null\n20 1 1 2 1 0 0 2 2 2 2 0 null null null null null\n19 3 2 3 2 1 1 1 1 3 3 1 null null null null null\n18 3 3 0 3 2 2 0 0 0 0 2 null null null null null\n17 0 0 1 0 3 3 3 3 1 1 3 null null null null null\n16 1 1 2 1 0 0 2 2 2 2 0 null null null null null\n15 2 2 3 2 1 1 1 1 3 3 1 null null null null null\n14 3 3 0 3 2 2 0 0 0 0 2 null null null null null\n13 1 0 1 0 3 3 3 3 1 1 3 null null null null null\n12 2 1 2 1 4 4 2 2 2 2 4 null null null null null\n11 1 2 3 2 0 0 0 0 3 3 0 null null null null null\n10 4 3 4 3 1 1 4 4 4 4 1 null null null null null\n9 3 4 0 4 2 2 2 2 0 0 2 null null null null null\n8 0 0 1 0 3 3 1 1 1 1 3 null null null null null\n7 2 1 2 1 0 0 0 0 2 2 0 null null null null null\n6 2 2 3 2 1 1 3 3 3 3 1 null null null null null\n5 4 3 0 3 2 2 2 2 0 0 2 null null null null null\n4 0 0 1 0 3 3 1 1 1 1 3 null null null null null\n3 1 1 2 1 0 0 0 0 2 2 0 null null null null null\n2 2 2 3 2 1 1 3 3 3 3 1 null null null null null\n1 0 3 0 3 2 2 2 2 0 0 2 null null null null null`);
-parseAndRegister("右リール", "ドンビッグ成立", `21 3 0 1 0 3 3 3 3 3 3 3 3 3 3 3 3\n20 4 1 2 1 0 0 4 4 4 4 4 4 4 4 4 4\n19 3 2 3 2 1 1 3 3 1 1 1 1 3 3 1 1\n18 2 3 0 3 2 2 2 2 0 0 0 0 0 0 0 0\n17 1 0 1 0 3 3 1 1 1 1 1 3 1 1 1 1\n16 0 1 2 1 0 0 0 0 2 2 2 2 2 2 0 2\n15 3 2 3 2 1 1 3 3 3 3 3 1 3 3 1 1\n14 2 3 0 3 2 2 2 2 0 0 0 4 2 2 2 4\n13 1 0 1 0 3 3 1 1 3 3 3 0 0 0 3 3\n12 4 1 2 1 4 4 4 4 2 2 2 1 1 1 4 1\n11 3 2 3 2 0 0 3 3 0 0 0 0 0 0 4 0\n10 1 3 4 3 1 1 1 1 4 4 4 3 1 1 4 3\n9 0 4 0 4 2 2 0 0 2 2 2 2 2 2 1 2\n8 3 0 1 0 3 3 3 3 1 1 1 3 3 3 1 3\n7 2 1 2 1 0 0 2 2 0 0 0 4 4 4 0 4\n6 1 2 3 2 1 1 1 1 1 1 1 1 3 3 1 1\n5 0 3 0 3 2 2 0 0 0 0 0 0 0 0 0 0\n4 1 0 1 0 3 3 1 1 1 1 1 1 1 1 1 1\n3 2 1 2 1 0 0 2 2 2 2 2 2 2 2 0 2\n2 1 2 3 2 1 1 1 1 3 3 3 1 3 3 1 1\n1 2 3 0 3 2 2 2 2 2 2 2 2 2 2 2 2`);
-parseAndRegister("右リール", "七ビッグ成立", `21 1 0 1 0 3 3 1 1 1 1 1 3 1 3 3 3\n20 0 1 2 1 0 0 0 0 0 0 0 0 2 0 0 0\n19 1 2 3 2 1 1 1 1 3 3 3 0 3 0 0 0\n18 0 3 0 3 2 2 0 0 0 0 0 2 0 0 0 0\n17 3 0 1 0 3 3 3 3 3 3 3 3 1 1 1 1\n16 2 1 2 1 0 0 2 2 2 2 2 0 2 0 0 0\n15 1 2 3 2 1 1 1 1 1 1 1 1 3 1 1 1\n14 4 3 0 3 2 2 4 4 4 4 4 2 2 2 2 2\n13 0 0 1 0 3 3 3 3 0 0 0 0 0 0 3 0\n12 1 1 2 1 4 4 4 4 1 1 1 0 1 0 4 0\n11 0 2 3 2 0 0 0 0 0 0 0 0 0 0 0 0\n10 3 3 4 3 1 1 1 1 1 1 1 2 1 2 2 2\n9 2 4 0 4 2 2 2 2 2 2 2 2 2 2 2 2\n8 3 0 1 0 3 3 3 3 3 3 3 3 3 3 3 3\n7 4 1 2 1 0 0 4 4 4 4 4 4 4 4 4 4\n6 1 2 3 2 1 1 1 1 3 3 3 1 3 1 1 1\n5 2 3 0 3 2 2 2 2 2 2 2 2 0 2 2 2\n4 3 0 1 0 3 3 3 3 1 1 1 2 1 2 2 2\n3 2 1 2 1 0 0 2 2 2 2 2 0 2 0 0 0\n2 1 2 3 2 1 1 1 1 3 3 3 0 3 0 0 0\n1 2 3 0 3 2 2 2 2 0 0 0 1 0 1 1 1`);
-parseAndRegister("右リール", "Regボーナス成立", `21 1 0 0 0 3 3 1 1 1 1 1 1 1 1 1 1\n20 0 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0\n19 1 2 2 2 1 1 1 1 1 1 1 1 1 1 1 1\n18 0 3 3 3 2 2 0 0 0 0 0 0 0 0 0 0\n17 3 0 0 0 3 3 3 3 1 1 1 1 1 1 1 1\n16 2 1 1 1 0 0 2 2 2 2 2 2 2 2 2 2\n15 3 2 2 2 1 1 3 3 3 3 3 3 3 3 3 3\n14 4 3 3 3 2 2 4 4 4 4 4 4 4 4 4 4\n13 1 0 0 0 3 3 1 1 3 3 3 0 3 3 3 3\n12 2 1 1 1 4 4 2 2 2 2 2 0 4 4 4 4\n11 0 2 2 2 0 0 0 0 0 0 0 0 0 0 0 0\n10 4 3 3 3 1 1 4 4 4 4 4 1 1 1 1 1\n9 0 4 4 4 2 2 0 0 2 2 2 2 2 2 0 2\n8 1 0 0 0 3 3 1 1 1 1 1 3 3 3 1 3\n7 0 1 1 1 0 0 0 0 0 0 0 4 4 4 0 4\n6 1 2 2 2 1 1 1 1 1 1 1 1 1 1 1 1\n5 0 3 3 3 2 2 0 0 0 0 0 0 0 0 0 0\n4 3 0 0 0 3 3 3 3 3 3 3 1 1 1 1 1\n3 2 1 1 1 0 0 2 2 2 2 2 2 2 2 2 2\n2 3 2 2 2 1 1 3 3 3 3 3 3 3 3 3 3\n1 4 3 3 3 2 2 4 4 4 4 4 4 4 4 4 4`);
-
-
-// --- UI制御ロジック ---
-let currentState = "ボーナス未成立";
-
-function initApp() {
-    // 成立役プルダウン生成
-    const flagSelect = document.getElementById('flag-select');
-    FLAG_ORDER.forEach((flag, idx) => {
-        const opt = document.createElement('option');
-        opt.value = idx;
-        opt.textContent = flag;
-        flagSelect.appendChild(opt);
-    });
-
-    // タブ切り替えイベント
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.addEventListener('click', (e) => {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            e.target.classList.add('active');
-            currentState = e.target.getAttribute('data-state');
-            updateSimulation();
+        rawText.trim().split('\n').forEach(line => {
+            const cols = line.trim().split(/\s+/);
+            const pushNum = parseInt(cols[0], 10);
+            flagOrder.forEach((flag, idx) => {
+                const val = cols[idx + 1];
+                this.db[reel][state][flag][pushNum] = (val === "null" || val === undefined) ? null : parseInt(val, 10);
+            });
         });
-    });
+    }
 
-    // 入力変更イベント
-    document.getElementById('reel-select').addEventListener('change', updateSimulation);
-    document.getElementById('pos-input').addEventListener('input', updateSimulation);
-    document.getElementById('flag-select').addEventListener('change', updateSimulation);
-
-    // リール初期化
-    REEL_NAMES.forEach((name, idx) => {
-        const reelEl = document.getElementById(`reel-${idx}`);
-        for (let i = 1; i <= 21; i++) {
-            const sym = document.createElement('div');
-            sym.className = 'symbol';
-            sym.style.backgroundImage = `url('reel${idx + 1}.png')`;
-            // 背景位置の計算は画像に合わせて調整が必要 (例: 1コマ60px)
-            sym.style.backgroundPositionY = `-${(i-1) * 60}px`; 
-            reelEl.appendChild(sym);
-        }
-    });
-
-    updateSimulation();
-}
-
-function updateSimulation() {
-    const reelIdx = parseInt(document.getElementById('reel-select').value);
-    const reelName = REEL_NAMES[reelIdx];
-    const pos = parseInt(document.getElementById('pos-input').value);
-    const flagIdx = parseInt(document.getElementById('flag-select').value);
-
-    const dataSet = biologicalDatabase[reelName][currentState];
-    const debugEl = document.getElementById('debug-info');
-
-    if (dataSet && dataSet[pos]) {
-        const slide = dataSet[pos][flagIdx];
-        const resultEl = document.getElementById('slide-result');
+    audit(reel, state, currentStopNum) {
+        const table = this.db[reel][state];
+        if (!table) return [];
+        const flagOrder = ["hazure", "rep_normal", "rep_jac", "rep_rt", "bell_a", "bell_b", "sui_a", "sui_b", "cher_a1", "cher_a2", "cher_b", "spec_a", "spec_b", "spec_c", "spec_d", "spec_e"];
         
-        if (slide === null) {
-            resultEl.textContent = "滑りコマ数: 未定義";
-            resultEl.style.color = "#ff5252";
-        } else {
-            resultEl.textContent = `滑りコマ数: ${slide}`;
-            resultEl.style.color = "#ffeb3b";
-        }
-        
-        debugEl.textContent = `[DEBUG] Reel: ${reelName} | State: ${currentState} | Pos: ${pos} | Flag: ${FLAG_ORDER[flagIdx]}`;
-        
-        // 視覚的反映
-        const reelEl = document.getElementById(`reel-${reelIdx}`);
-        const offset = (pos - 1 + (slide || 0)) % 21;
-        reelEl.style.transform = `translateY(${offset * 60}px)`;
+        return flagOrder.map(flagKey => {
+            const slips = table[flagKey];
+            const found = [];
+            for (let P = 1; P <= 21; P++) {
+                const L = slips[P];
+                if (L !== null && (P + L - 1) % 21 + 1 === currentStopNum) {
+                    found.push({ pushNum: P, slip: L });
+                }
+            }
+            return { key: flagKey, info: FLAG_INFO[flagKey], matches: found.sort((a, b) => b.slip - a.slip) };
+        }).filter(res => res.matches.length > 0);
     }
 }
 
-window.onload = initApp;
-</script>
+const Engine = new ReverseAuditor();
+const parseAndRegister = (r, s, d) => Engine.register(r, s, d);
 
+// --- DATA INJECTION START ---
+// 左リール
+parseAndRegister("left", "bonus_unestablished", `
+21 1 2 1 1 2 3 2 2 4 4 4 null null null null null
+20 0 0 2 0 3 4 0 0 1 1 1 null null null null null
+19 0 1 3 1 4 4 0 0 2 2 2 null null null null null
+18 1 1 0 1 0 0 2 2 3 3 3 null null null null null
+17 0 0 1 0 0 1 1 1 4 4 4 null null null null null
+16 2 1 2 1 1 2 3 3 0 0 0 null null null null null
+15 3 2 3 2 2 3 3 3 1 1 1 null null null null null
+14 3 3 1 3 3 4 4 4 0 0 2 null null null null null
+13 0 4 2 4 4 4 0 0 1 1 1 null null null null null
+12 1 0 3 0 0 1 1 1 2 2 4 null null null null null
+11 0 1 0 0 1 2 1 1 3 3 3 null null null null null
+10 1 0 1 1 2 3 2 2 4 4 4 null null null null null
+9 2 1 2 1 3 4 2 2 1 1 1 null null null null null
+8 0 2 0 2 4 0 3 3 2 2 2 null null null null null
+7 1 0 1 0 0 0 4 4 3 3 3 null null null null null
+6 2 1 2 1 2 1 1 1 0 0 0 null null null null null
+5 3 2 3 2 2 3 3 3 1 1 1 null null null null null
+4 4 3 1 3 3 4 3 3 0 0 2 null null null null null
+3 0 4 2 4 4 4 0 0 1 1 1 null null null null null
+2 1 0 3 0 0 0 0 0 2 2 4 null null null null null
+1 1 1 0 0 1 2 1 1 3 3 3 null null null null null
+`);
+parseAndRegister("left", "don_big_established", `
+21	3	2	1	2	2	2	3	3	4	4	4	3	1	1	3	3
+20	4	0	2	0	3	4	4	4	1	1	1	4	0	2	4	4
+19	0	1	0	1	4	4	0	0	2	2	2	4	0	0	2	0
+18	1	1	1	1	0	0	2	2	3	3	3	1	1	1	2	1
+17	0	0	1	0	0	1	1	1	4	4	4	1	2	2	4	0
+16	2	1	3	1	1	1	3	3	0	0	0	1	3	2	3	2
+15	2	2	3	2	2	3	3	3	1	1	1	4	3	4	3	2
+14	3	3	4	3	3	4	4	4	0	0	2	4	4	4	3	3
+13	0	4	0	4	0	4	0	0	1	1	1	0	0	0	0	0
+12	1	0	0	0	0	1	1	1	2	2	4	1	1	1	1	1
+11	0	1	1	1	1	1	0	0	3	3	3	0	0	0	0	0
+10	1	0	2	0	3	2	1	1	4	4	4	1	1	1	0	1
+9	1	1	4	1	4	4	2	2	1	1	1	2	2	1	2	1
+8	1	2	0	2	0	0	3	3	2	2	2	3	2	1	1	1
+7	1	0	1	0	0	0	4	4	3	3	1	4	2	3	4	3
+6	1	1	2	1	1	1	1	1	0	0	0	2	4	3	3	3
+5	3	2	2	2	3	2	2	2	1	1	1	2	4	4	4	4
+4	3	3	4	3	3	3	3	3	0	0	0	4	4	3	4	3
+3	0	4	0	4	0	4	0	0	1	1	1	0	0	0	0	0
+2	1	0	1	0	0	0	1	1	2	2	2	1	1	1	1	1
+1	2	1	0	1	1	1	2	2	3	3	3	2	0	0	2	2
+`);
+parseAndRegister("left", "seven_big_established", `
+21	1	2	0	2	2	3	2	2	4	4	4	2	1	1	1	1
+20	0	1	1	0	3	4	0	0	0	1	1	3	0	0	0	0
+19	0	0	1	1	4	4	0	0	1	2	2	0	0	1	0	0
+18	1	2	1	1	0	0	0	0	2	3	3	0	1	2	1	1
+17	1	0	0	0	0	1	1	1	3	4	4	0	2	1	0	0
+16	1	1	1	1	1	1	3	3	0	0	0	3	3	2	3	3
+15	4	2	0	2	2	2	3	3	1	1	1	2	3	3	3	3
+14	4	3	3	3	3	4	4	4	2	0	2	3	4	4	3	3
+13	4	4	4	4	4	0	0	0	1	1	1	0	4	0	4	0
+12	1	0	1	0	0	1	1	1	4	2	4	0	1	1	1	1
+11	2	1	4	1	1	2	1	1	3	3	3	1	0	2	0	2
+10	3	2	1	0	2	3	2	2	4	4	4	1	1	1	1	1
+9	4	1	1	1	3	4	2	2	2	1	1	2	2	2	2	2
+8	0	4	3	2	4	0	3	3	3	2	2	3	2	3	2	2
+7	0	0	0	0	0	0	4	4	4	3	3	4	2	3	2	2
+6	2	4	1	1	2	2	1	1	0	0	0	1	4	3	4	4
+5	2	2	0	2	2	2	2	2	1	1	1	3	4	4	4	4
+4	4	3	1	3	3	4	3	3	2	0	2	3	4	3	4	4
+3	0	4	4	4	4	0	0	0	1	1	1	0	0	0	0	0
+2	1	0	3	0	0	1	0	0	4	2	4	0	1	1	1	1
+1	0	1	4	1	1	2	1	1	3	3	3	1	0	0	0	0
+`);
+parseAndRegister("left", "reg_bonus_established", `
+21	1	2	2	2	2	3	2	2	4	4	4	1	1	1	1	1
+20	0	1	0	0	3	4	0	0	1	1	1	0	0	0	2	0
+19	0	0	1	1	4	4	0	0	2	2	2	0	1	1	0	0
+18	1	2	1	1	0	0	0	0	3	3	3	0	2	2	1	1
+17	0	0	0	0	0	1	1	1	4	4	4	1	1	1	0	0
+16	3	1	1	1	1	1	3	3	0	0	0	2	2	2	2	3
+15	3	2	2	2	2	2	3	3	1	1	1	3	3	3	2	3
+14	3	3	3	3	3	4	4	4	0	0	0	4	4	4	3	3
+13	0	4	4	4	4	0	0	0	1	1	1	0	0	0	0	0
+12	1	0	0	0	0	1	1	1	2	2	2	1	1	1	1	1
+11	2	1	1	1	1	2	2	2	3	3	3	2	0	2	0	0
+10	3	2	0	0	2	3	3	3	4	4	4	3	1	1	1	1
+9	4	1	1	1	3	4	4	4	4	4	4	4	2	2	1	2
+8	2	4	2	2	4	0	3	3	2	2	2	3	3	3	1	3
+7	2	0	0	0	0	0	4	4	3	3	1	4	3	3	3	4
+6	2	4	1	1	2	2	1	1	0	0	0	3	3	3	3	4
+5	2	2	2	2	2	2	2	2	1	1	1	4	4	4	4	4
+4	4	3	3	3	3	4	3	3	0	0	2	3	3	3	3	4
+3	0	4	4	4	4	0	0	0	1	1	1	0	0	0	0	0
+2	1	0	0	0	0	1	0	0	2	2	4	1	1	1	1	1
+1	0	1	1	1	1	2	1	1	3	3	3	0	0	0	0	0
+`);
+
+// 中リール
+parseAndRegister("middle", "bonus_unestablished", `
+21	4	1	1	1	0	0	2	2	4	4	4	null	null	null	null	null
+20	0	2	2	2	1	1	3	3	0	0	0	null	null	null	null	null
+19	1	0	0	0	2	2	4	4	1	1	1	null	null	null	null	null
+18	2	1	1	1	0	0	2	2	2	2	2	null	null	null	null	null
+17	0	2	2	2	1	1	0	0	0	0	0	null	null	null	null	null
+16	1	3	3	3	2	2	0	0	1	1	1	null	null	null	null	null
+15	0	4	4	4	3	3	0	0	0	0	0	null	null	null	null	null
+14	1	0	0	0	4	4	2	2	1	1	1	null	null	null	null	null
+13	2	1	1	1	0	0	2	2	2	2	2	null	null	null	null	null
+12	3	2	2	2	1	1	4	4	3	3	3	null	null	null	null	null
+11	1	3	3	3	2	2	4	4	0	0	0	null	null	null	null	null
+10	1	0	0	0	3	3	2	2	1	1	1	null	null	null	null	null
+9	3	1	1	1	0	0	3	3	2	2	2	null	null	null	null	null
+8	0	2	2	2	1	1	0	0	3	3	3	null	null	null	null	null
+7	0	3	3	3	2	2	1	1	4	4	0	null	null	null	null	null
+6	1	0	0	0	3	3	2	2	2	2	1	null	null	null	null	null
+5	2	1	1	1	0	0	3	3	3	3	2	null	null	null	null	null
+4	3	2	2	2	1	1	0	0	0	0	3	null	null	null	null	null
+3	1	3	3	3	2	2	1	1	1	1	4	null	null	null	null	null
+2	2	4	4	4	3	3	0	0	2	2	2	null	null	null	null	null
+1	1	0	0	0	4	4	1	1	3	3	3	null	null	null	null	null
+`);
+parseAndRegister("middle", "don_big_established", `
+21	2	1	1	1	0	0	2	2	4	4	4	4	2	2	2	4
+20	3	2	2	2	1	1	3	3	0	0	0	4	0	4	0	0
+19	0	0	0	0	2	2	4	4	1	1	1	4	1	4	1	1
+18	1	1	1	1	0	0	1	1	2	2	2	2	2	2	2	2
+17	2	2	2	2	1	1	0	0	0	0	0	3	3	3	3	0
+16	1	3	3	3	2	2	1	1	1	1	1	4	0	0	0	0
+15	1	4	4	4	3	3	1	1	0	0	0	0	0	0	0	0
+14	1	0	0	0	4	4	1	1	1	1	1	1	1	1	1	1
+13	3	1	1	1	0	0	3	3	2	2	2	2	2	2	2	2
+12	3	2	2	2	1	1	3	3	3	3	3	0	3	3	3	2
+11	0	3	3	3	2	2	4	4	0	0	0	0	4	4	4	4
+10	2	0	0	0	3	3	2	2	1	1	1	0	4	4	4	4
+9	2	1	1	1	0	0	2	2	2	2	2	1	0	0	2	1
+8	0	2	2	2	1	1	0	0	0	0	0	0	0	0	0	0
+7	0	3	3	3	2	2	0	0	0	0	0	0	1	1	0	0
+6	1	0	0	0	3	3	1	1	1	1	1	2	0	0	1	2
+5	1	1	1	1	0	0	1	1	3	3	3	3	1	1	2	3
+4	3	2	2	2	1	1	0	0	3	3	3	0	2	2	3	2
+3	3	3	3	3	2	2	1	1	4	4	4	0	3	3	4	4
+2	4	4	4	4	3	3	0	0	4	4	4	1	4	4	4	4
+1 1 0 0 0 4 4 1 1 3 3 3 3 1 1 1 3
+`);
+parseAndRegister("middle", "seven_big_established", `
+21	4	1	1	1	0	0	4	4	4	4	4	2	2	2	2	2
+20	0	2	2	2	1	1	4	4	0	0	0	3	0	3	3	3
+19	1	0	0	0	2	2	4	4	1	1	1	4	1	4	0	0
+18	2	1	1	1	0	0	2	2	2	2	2	1	2	1	1	1
+17	3	2	2	2	1	1	0	0	0	0	0	2	3	2	2	0
+16	0	3	3	3	2	2	0	0	0	0	0	0	0	0	0	0
+15	0	4	4	4	3	3	0	0	0	0	0	1	0	1	1	1
+14	1	0	0	0	4	4	1	1	1	1	1	2	1	2	2	2
+13	2	1	1	1	0	0	2	2	2	2	2	3	2	3	3	3
+12	2	2	2	2	1	1	4	4	3	3	3	4	3	4	4	4
+11	4	3	3	3	2	2	4	4	4	4	4	4	4	4	4	4
+10	4	0	0	0	3	3	4	4	4	4	4	4	4	4	4	4
+9	1	1	1	1	0	0	1	1	2	2	2	0	0	0	0	0
+8	3	2	2	2	1	1	3	3	3	3	3	0	0	0	0	0
+7	4	3	3	3	2	2	4	4	4	4	4	1	1	1	1	1
+6	2	0	0	0	3	3	2	2	1	1	1	2	0	2	2	2
+5	3	1	1	1	0	0	3	3	3	3	3	3	1	3	3	3
+4	2	2	2	2	1	1	0	0	3	3	3	0	2	0	0	0
+3	0	3	3	3	2	2	0	0	1	1	1	1	3	1	1	1
+2	1	4	4	4	3	3	1	1	2	2	2	0	4	0	0	0
+1	3	0	0	0	4	4	3	3	3	3	3	1	1	1	1	1
+`);
+parseAndRegister("middle", "reg_bonus_established", `
+21	2	1	1	1	0	0	2	2	4	4	4	2	2	2	2	2
+20	0	2	2	2	1	1	4	4	0	0	0	3	3	3	3	3
+19	1	0	0	0	2	2	4	4	1	1	1	4	4	4	4	4
+18	2	1	1	1	0	0	2	2	2	2	2	2	2	2	2	2
+17	3	2	2	2	1	1	0	0	0	0	0	3	3	3	3	0
+16	0	3	3	3	2	2	0	0	0	0	0	0	0	0	0	0
+15	0	4	4	4	3	3	0	0	0	0	0	0	0	0	0	0
+14	2	0	0	0	4	4	2	2	1	1	1	1	1	1	1	1
+13	2	1	1	1	0	0	2	2	2	2	2	2	2	2	2	2
+12	3	2	2	2	1	1	3	3	3	3	3	3	3	3	3	3
+11	0	3	3	3	2	2	4	4	0	0	0	4	4	4	4	4
+10	1	0	0	0	3	3	1	1	1	1	1	1	4	4	4	4
+9	2	1	1	1	0	0	2	2	2	2	2	2	0	0	2	2
+8	3	2	2	2	1	1	3	3	3	3	3	3	0	0	3	3
+7	4	3	3	3	2	2	4	4	4	4	4	4	1	1	4	4
+6	2	0	0	0	3	3	2	2	1	1	1	0	0	0	0	0
+5	3	1	1	1	0	0	3	3	3	3	3	1	1	1	1	1
+4	0	2	2	2	1	1	0	0	3	3	3	0	2	2	2	2
+3	3	3	3	3	2	2	1	1	4	4	4	1	3	3	3	3
+2	0	4	4	4	3	3	0	0	2	2	2	0	4	4	0	0
+1	1	0	0	0	4	4	1	1	3	3	3	3	3	3	3	3
+`);
+
+// 右リール
+parseAndRegister("right", "bonus_unestablished", `
+21	1	0	1	0	3	3	1	1	1	1	3	null	null	null	null	null
+20	1	1	2	1	0	0	2	2	2	2	0	null	null	null	null	null
+19	3	2	3	2	1	1	1	1	3	3	1	null	null	null	null	null
+18	3	3	0	3	2	2	0	0	0	0	2	null	null	null	null	null
+17	0	0	1	0	3	3	3	3	1	1	3	null	null	null	null	null
+16	1	1	2	1	0	0	2	2	2	2	0	null	null	null	null	null
+15	2	2	3	2	1	1	1	1	3	3	1	null	null	null	null	null
+14	3	3	0	3	2	2	0	0	0	0	2	null	null	null	null	null
+13	1	0	1	0	3	3	3	3	1	1	3	null	null	null	null	null
+12	2	1	2	1	4	4	2	2	2	2	4	null	null	null	null	null
+11	1	2	3	2	0	0	0	0	3	3	0	null	null	null	null	null
+10	4	3	4	3	1	1	4	4	4	4	1	null	null	null	null	null
+9	3	4	0	4	2	2	2	2	0	0	2	null	null	null	null	null
+8	0	0	1	0	3	3	1	1	1	1	3	null	null	null	null	null
+7	2	1	2	1	0	0	0	0	2	2	0	null	null	null	null	null
+6	2	2	3	2	1	1	3	3	3	3	1	null	null	null	null	null
+5	4	3	0	3	2	2	2	2	0	0	2	null	null	null	null	null
+4	0	0	1	0	3	3	1	1	1	1	3	null	null	null	null	null
+3	1	1	2	1	0	0	0	0	2	2	0	null	null	null	null	null
+2	2	2	3	2	1	1	3	3	3	3	1	null	null	null	null	null
+1	0	3	0	3	2	2	2	2	0	0	2	null	null	null	null	null
+`);
+parseAndRegister("right", "don_big_established", `
+21	3	0	1	0	3	3	3	3	3	3	3	3	3	3	3	3
+20	4	1	2	1	0	0	4	4	4	4	4	4	4	4	4	4
+19	3	2	3	2	1	1	3	3	1	1	1	1	3	3	1	1
+18	2	3	0	3	2	2	2	2	0	0	0	0	0	0	0	0
+17	1	0	1	0	3	3	1	1	1	1	1	3	1	1	1	1
+16	0	1	2	1	0	0	0	0	2	2	2	2	2	2	0	2
+15	3	2	3	2	1	1	3	3	3	3	3	1	3	3	1	1
+14	2	3	0	3	2	2	2	2	0	0	0	4	2	2	2	4
+13	1	0	1	0	3	3	1	1	3	3	3	0	0	0	3	3
+12	4	1	2	1	4	4	4	4	2	2	2	1	1	1	4	1
+11	3	2	3	2	0	0	3	3	0	0	0	0	0	0	4	0
+10	1	3	4	3	1	1	1	1	4	4	4	3	1	1	4	3
+9	0	4	0	4	2	2	0	0	2	2	2	2	2	2	1	2
+8	3	0	1	0	3	3	3	3	1	1	1	3	3	3	1	3
+7	2	1	2	1	0	0	2	2	0	0	0	4	4	4	0	4
+6	1	2	3	2	1	1	1	1	1	1	1	1	3	3	1	1
+5	0	3	0	3	2	2	0	0	0	0	0	0	0	0	0	0
+4	1	0	1	0	3	3	1	1	1	1	1	1	1	1	1	1
+3	2	1	2	1	0	0	2	2	2	2	2	2	2	2	0	2
+2	1	2	3	2	1	1	1	1	3	3	3	1	3	3	1	1
+1	2	3	0	3	2	2	2	2	2	2	2	2	2	2	2	2
+`);
+parseAndRegister("right", "seven_big_established", `
+21	1	0	1	0	3	3	1	1	1	1	1	3	1	3	3	3
+20	0	1	2	1	0	0	0	0	0	0	0	0	2	0	0	0
+19	1	2	3	2	1	1	1	1	3	3	3	0	3	0	0	0
+18	0	3	0	3	2	2	0	0	0	0	0	2	0	0	0	0
+17	3	0	1	0	3	3	3	3	3	3	3	3	1	1	1	1
+16	2	1	2	1	0	0	2	2	2	2	2	0	2	0	0	0
+15	1	2	3	2	1	1	1	1	1	1	1	1	3	1	1	1
+14	4	3	0	3	2	2	4	4	4	4	4	2	2	2	2	2
+13	0	0	1	0	3	3	3	3	0	0	0	0	0	0	3	0
+12	1	1	2	1	4	4	4	4	1	1	1	0	1	0	4	0
+11	0	2	3	2	0	0	0	0	0	0	0	0	0	0	0	0
+10	3	3	4	3	1	1	1	1	1	1	1	2	1	2	2	2
+9	2	4	0	4	2	2	2	2	2	2	2	2	2	2	2	2
+8	3	0	1	0	3	3	3	3	3	3	3	3	3	3	3	3
+7	4	1	2	1	0	0	4	4	4	4	4	4	4	4	4	4
+6	1	2	3	2	1	1	1	1	3	3	3	1	3	1	1	1
+5	2	3	0	3	2	2	2	2	2	2	2	2	0	2	2	2
+4	3	0	1	0	3	3	3	3	1	1	1	2	1	2	2	2
+3	2	1	2	1	0	0	2	2	2	2	2	0	2	0	0	0
+2	1	2	3	2	1	1	1	1	3	3	3	0	3	0	0	0
+1	2	3	0	3	2	2	2	2	0	0	0	1	0	1	1	1
+`);
+parseAndRegister("right", "reg_bonus_established", `
+21	1	0	0	0	3	3	1	1	1	1	1	1	1	1	1	1
+20	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0
+19	1	2	2	2	1	1	1	1	1	1	1	1	1	1	1	1
+18	0	3	3	3	2	2	0	0	0	0	0	0	0	0	0	0
+17	3	0	0	0	3	3	3	3	1	1	1	1	1	1	1	1
+16	2	1	1	1	0	0	2	2	2	2	2	2	2	2	2	2
+15	3	2	2	2	1	1	3	3	3	3	3	3	3	3	3	3
+14	4	3	3	3	2	2	4	4	4	4	4	4	4	4	4	4
+13	1	0	0	0	3	3	1	1	3	3	3	0	3	3	3	3
+12	2	1	1	1	4	4	2	2	2	2	2	0	4	4	4	4
+11	0	2	2	2	0	0	0	0	0	0	0	0	0	0	0	0
+10	4	3	3	3	1	1	4	4	4	4	4	1	1	1	1	1
+9	0	4	4	4	2	2	0	0	2	2	2	2	2	2	0	2
+8	1	0	0	0	3	3	1	1	1	1	1	3	3	3	1	3
+7	0	1	1	1	0	0	0	0	0	0	0	4	4	4	0	4
+6	1	2	2	2	1	1	1	1	1	1	1	1	1	1	1	1
+5	0	3	3	3	2	2	0	0	0	0	0	0	0	0	0	0
+4	3	0	0	0	3	3	3	3	3	3	3	1	1	1	1	1
+3	2	1	1	1	0	0	2	2	2	2	2	2	2	2	2	2
+2	3	2	2	2	1	1	3	3	3	3	3	3	3	3	3	3
+1 4 3 3 3 2 2 4 4 4 4 4 4 4 4 4 4
+`);
+// --- DATA INJECTION END ---
+
+const app = {
+    state: { reel: 'left', flagMode: 'bonus_unestablished', stopNum: 21 },
+    
+    init() {
+        this.renderReelStrip();
+        this.attachEvents();
+        setTimeout(() => this.updateView(), 100);
+    },
+
+    setStop(side) {
+        this.state.reel = side;
+        document.querySelectorAll('.stop-tab').forEach(el => 
+            el.classList.toggle('active', el.id === `t-${this.state.reel}`));
+        this.renderReelStrip();
+        this.updateView();
+    },
+
+    setState(mode) {
+        this.state.flagMode = mode;
+        document.querySelectorAll('.state-tab').forEach(el => 
+            el.classList.toggle('active', el.id === `s-${this.state.flagMode}`));
+        this.updateView();
+    },
+
+    updateView() {
+        this.audit();
+        this.updateReelPosition();
+    },
+
+    audit() {
+        const list = document.getElementById('result-list');
+        list.innerHTML = '';
+        const results = Engine.audit(this.state.reel, this.state.flagMode, this.state.stopNum);
+        
+        if(results.length === 0) {
+            list.innerHTML = '<div style="padding:20px; text-align:center; color:#555; font-size:12px;">条件に一致するフラグがありません</div>';
+            return;
+        }
+
+        results.forEach(res => {
+            const row = document.createElement('div');
+            row.className = `res-row f-${res.info.c}`;
+            const matchesStr = res.matches
+                .map(m => `<span class="res-slip">[${m.slip}]</span>`)
+                .join('');
+            row.innerHTML = `<div class="res-name">${res.info.n}</div><div class="res-data">${matchesStr}</div>`;
+            list.appendChild(row);
+        });
+    },
+
+    renderReelStrip() {
+        const container = document.getElementById('reel-strip');
+        container.innerHTML = '';
+        const bgImage = REEL_ASSETS[this.state.reel]; 
+        
+        for(let loop=0; loop<3; loop++) {
+            for(let idx=0; idx<21; idx++) {
+                const reelNum = 21 - idx;
+                const el = document.createElement('div');
+                el.className = 'symbol';
+                const bgSize = `100% ${21 * 60}px`;
+                const bgPos = `center -${idx * 60}px`;
+                
+                el.innerHTML = `
+                    <div class="sym-idx">${reelNum}</div>
+                    <div class="sym-bg" style="background-image: url('${bgImage}'); background-size: ${bgSize}; background-position: ${bgPos}"></div>
+                `;
+                container.appendChild(el);
+            }
+        }
+    },
+
+    updateReelPosition() {
+        const baseH = 21 * 60;
+        const targetIdx = 21 - this.state.stopNum;
+        const y = -baseH - (targetIdx * 60) + 240; 
+        document.getElementById('reel-strip').style.transform = `translate3d(0, ${y}px, 0)`;
+    },
+
+    attachEvents() {
+        const touchArea = document.getElementById('touch-area');
+        let startY = 0, startNum = 0, isDragging = false;
+        const onMove = (y) => {
+            if(!isDragging) return;
+            const diff = startY - y;
+            const moveFrame = Math.round(diff / 60);
+            let nextNum = startNum - moveFrame;
+            while(nextNum > 21) nextNum -= 21;
+            while(nextNum < 1) nextNum += 21;
+            if(this.state.stopNum !== nextNum) {
+                this.state.stopNum = nextNum;
+                this.updateView();
+            }
+        };
+        touchArea.addEventListener('mousedown', e => { isDragging=true; startY=e.pageY; startNum=this.state.stopNum; });
+        window.addEventListener('mousemove', e => onMove(e.pageY));
+        window.addEventListener('mouseup', () => isDragging=false);
+        touchArea.addEventListener('touchstart', e => { isDragging=true; startY=e.touches[0].pageY; startNum=this.state.stopNum; }, {passive:false});
+        window.addEventListener('touchmove', e => { e.preventDefault(); onMove(e.touches[0].pageY); }, {passive:false});
+        window.addEventListener('touchend', () => isDragging=false);
+    }
+};
+
+app.init();
+</script>
 </body>
 </html>
