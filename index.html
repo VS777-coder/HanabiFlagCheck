@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Versus Revise - Absolute Auditor (Shin-Hanabi Injection)</title>
+    <title>Versus Revise - Absolute Auditor (Shin-Hanabi Initial Position)</title>
     <style>
-        /* 提供された index.html のUI/CSSを100%継承 */
+        /* index.html のUI/CSSを完全継承 */
         :root { --c-bg: #000; --c-text: #eee; --c-accent: #ffd700; --c-border: #333; }
         * { box-sizing: border-box; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
         html, body { width: 100%; height: 100%; min-height: 100dvh; margin: 0; padding: 0; background: var(--c-bg); color: var(--c-text); font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; overflow: hidden; display: flex; flex-direction: column; touch-action: manipulation; overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
@@ -84,7 +84,7 @@ const MASTER_RAW = {
 };
 const FLAG_DEFS = [ {k:"hazure",n:"ハズレ",c:"hazure"},{k:"rep_normal",n:"リプレイ",c:"rep"},{k:"rep_jac",n:"JACリプ",c:"rep"},{k:"rep_rt",n:"RTリプ",c:"rep"},{k:"bell_a",n:"ベルＡ",c:"bell"},{k:"bell_b",n:"ベルＢ",c:"bell"},{k:"sui_a",n:"氷Ａ",c:"suika"},{k:"sui_b",n:"氷Ｂ",c:"suika"},{k:"cher_a1",n:"チェＡ1",c:"cher"},{k:"cher_a2",n:"チェＡ2",c:"cher"},{k:"cher_b",n:"チェＢ",c:"cher"},{k:"tok_a",n:"特役Ａ",c:"tok"},{k:"tok_b",n:"特役Ｂ",c:"tok"},{k:"tok_c",n:"特役Ｃ",c:"tok"},{k:"tok_d",n:"特役Ｄ",c:"tok"},{k:"tok_e",n:"特役Ｅ",c:"tok"} ];
 const REEL_SYMS = {
-    left: ["Sui","Cher","Don","Bell","Rep","Sui","Bell","Rep","Seven","Bell","Sui","Cher","Bar","Bell","Rep","Sui","Don","Don","Don","Rep","Bell"],
+    left: ["Sui","Cher","Don","Bell","Rep","Sui","Bell","Rep","Seven","Bell","Rep","Cher","Bar","Bell","Sui","Rep","Don","Don","Don","Rep","Bell"],
     middle: ["Bell","Cher","Rep","Bell","Cher","Sui","Seven","Sui","Bell","Bar","Cher","Rep","Bell","Cher","Don","Rep","Bell","Cher","Sui","Cher","Rep"],
     right: ["Cher","Bell","Sui","Rep","Cher","Seven","Bell","Sui","Rep","Cher","Bell","Rep","Bar","Cher","Bell","Sui","Rep","Don","Bell","Sui","Rep"]
 };
@@ -108,7 +108,8 @@ function build() {
     }
 }
 const app = {
-    state: { reel: 'left', flagMode: 'bonus_unestablished', stopNum: 21 },
+    // ★指示に基づき初期配置を設定
+    state: { reel: 'left', flagMode: 'bonus_unestablished', stopNum: 12, positions: { left: 12, middle: 14, right: 2 } },
     init() { build(); this.render(); this.attach(); this.update(); },
     render() {
         const win = document.getElementById('reel-strip'); win.innerHTML = '';
@@ -134,16 +135,16 @@ const app = {
                 }
             });
         }
-        const y = -(21*60) - ((21-this.state.stopNum)*60) + 240; // 提供ソースの座標オフセット
+        const y = -(21*60) - ((21-this.state.stopNum)*60) + 240; // index.html座標
         document.getElementById('reel-strip').style.transform = `translate3d(0, ${y}px, 0)`;
     },
-    setStop(r) { this.state.reel = r; document.querySelectorAll('.stop-tab').forEach(el => el.classList.toggle('active', el.id === `t-${r}`)); this.render(); this.update(); },
+    setStop(r) { this.state.reel = r; this.state.stopNum = this.state.positions[r]; document.querySelectorAll('.stop-tab').forEach(el => el.classList.toggle('active', el.id === `t-${r}`)); this.render(); this.update(); },
     setState(s) { this.state.flagMode = s; document.querySelectorAll('.state-tab').forEach(el => el.classList.toggle('active', el.id === `s-${s}`)); this.update(); },
     attach() {
         let isD = false, sy = 0, sn = 0;
         const area = document.getElementById('touch-area');
         const st = (y) => { isD = true; sy = y; sn = this.state.stopNum; };
-        const mv = (y) => { if(!isD) return; let n = sn - Math.round((sy - y)/60); while(n>21)n-=21; while(n<1)n+=21; if(this.state.stopNum!==n){this.state.stopNum=n;this.update();} };
+        const mv = (y) => { if(!isD) return; let n = sn - Math.round((sy - y)/60); while(n>21)n-=21; while(n<1)n+=21; if(this.state.stopNum!==n){this.state.stopNum=n; this.state.positions[this.state.reel]=n; this.update();} };
         area.addEventListener('touchstart', e => { st(e.touches[0].pageY); e.preventDefault(); }, {passive:false});
         window.addEventListener('touchmove', e => { mv(e.touches[0].pageY); e.preventDefault(); }, {passive:false});
         window.addEventListener('touchend', () => isD = false);
