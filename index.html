@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Versus Revise - Absolute Auditor (Shin-Hanabi Initial Position)</title>
+    <title>Versus Revise - Absolute Auditor (Initial Position Fix)</title>
     <style>
         /* index.html のUI/CSSを完全継承 */
         :root { --c-bg: #000; --c-text: #eee; --c-accent: #ffd700; --c-border: #333; }
@@ -108,7 +108,7 @@ function build() {
     }
 }
 const app = {
-    // ★指示に基づき初期配置を設定
+    // ★指定された初期配置を正確にセット
     state: { reel: 'left', flagMode: 'bonus_unestablished', stopNum: 12, positions: { left: 12, middle: 14, right: 2 } },
     init() { build(); this.render(); this.attach(); this.update(); },
     render() {
@@ -135,7 +135,7 @@ const app = {
                 }
             });
         }
-        const y = -(21*60) - ((21-this.state.stopNum)*60) + 240; // index.html座標
+        const y = -(21*60) - ((21-this.state.stopNum)*60) + 240; // index.html描画ロジック準拠
         document.getElementById('reel-strip').style.transform = `translate3d(0, ${y}px, 0)`;
     },
     setStop(r) { this.state.reel = r; this.state.stopNum = this.state.positions[r]; document.querySelectorAll('.stop-tab').forEach(el => el.classList.toggle('active', el.id === `t-${r}`)); this.render(); this.update(); },
