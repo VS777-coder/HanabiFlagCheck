@@ -3,41 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Versus Revise - Absolute Reverse Auditor (Shin-Hanabi DNA Imjected)</title>
+    <title>Versus Revise - Absolute Auditor (Shin-Hanabi Injection)</title>
     <style>
-        /* 【最終版.html】のUI/CSS定義を完全継承 */
-        :root { --c-bg: #111; --c-text: #eee; --c-accent: #ffd700; }
-        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
-        html, body { width: 100%; height: 100%; margin: 0; padding: 0; background: var(--c-bg); color: var(--c-text); font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; overflow: hidden; display: flex; flex-direction: column; }
-        .controls { padding: 5px; flex-shrink: 0; background: #222; border-bottom: 1px solid #444; }
-        .tab-group { display: flex; gap: 4px; margin-bottom: 5px; overflow-x: auto; }
-        .tab { flex: 1; padding: 8px 4px; text-align: center; font-size: 11px; font-weight: bold; cursor: pointer; border-radius: 4px; border: 1px solid #444; opacity: 0.5; transition: all 0.2s; white-space: nowrap; min-width: 60px; }
-        .tab.active { opacity: 1; border-color: #888; box-shadow: 0 0 5px rgba(255,255,255,0.2); }
-        .stop-tab.active#t-left { background: #ffb7ce; color: #800020; }
-        .stop-tab.active#t-middle { background: #b3e5fc; color: #003c8f; }
-        .stop-tab.active#t-right { background: #c8e6c9; color: #1b5e20; }
-        .state-tab#s-bonus_unestablished.active { background: #fff; color: #000; }
+        /* 提供された index.html のUI/CSSを完全継承 */
+        :root { --c-bg: #000; --c-text: #eee; --c-accent: #ffd700; --c-border: #333; }
+        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+        html, body { width: 100%; height: 100%; min-height: 100dvh; margin: 0; padding: 0; background: var(--c-bg); color: var(--c-text); font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; overflow: hidden; display: flex; flex-direction: column; touch-action: manipulation; overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
+        .controls { padding: 4px; flex-shrink: 0; background: #111; border-bottom: 1px solid var(--c-border); z-index: 20; }
+        .tab-group { display: flex; gap: 4px; margin-bottom: 4px; overflow-x: auto; }
+        .tab { flex: 1; padding: 10px 0; text-align: center; font-size: 11px; font-weight: bold; cursor: pointer; border-radius: 4px; border: 1px solid #333; background: #1a1a1a; color: #888; white-space: nowrap; transition: all 0.1s; }
+        .tab.active { opacity: 1; color: #fff; border-color: #777; box-shadow: 0 0 8px rgba(255,255,255,0.1); }
+        .stop-tab.active#t-left { background: #600010; color: #ffb7ce; border-color: #ff80ab; }
+        .stop-tab.active#t-middle { background: #001040; color: #b3e5fc; border-color: #80d8ff; }
+        .stop-tab.active#t-right { background: #002005; color: #c8e6c9; border-color: #69f0ae; }
+        .state-tab#s-bonus_unestablished.active { background: #ddd; color: #000; }
         .state-tab#s-x_big_established.active { background: #304ffe; color: #fff; }
         .state-tab#s-seven_big_established.active { background: #d50000; color: #fff; }
-        .state-tab#s-reg_bonus_established.active { background: #222; color: #fff; border: 1px solid #fff; }
-        .workspace { display: flex; flex-direction: row-reverse; flex: 1; overflow: hidden; padding: 10px; gap: 10px; align-items: flex-start; justify-content: center; }
-        .reel-container { width: 100px; height: 420px; position: relative; background: #000; border: 2px solid #333; border-radius: 4px; flex-shrink: 0; overflow: hidden; touch-action: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .state-tab#s-reg_bonus_established.active { background: #333; color: #fff; border: 1px solid #fff; }
+        .workspace { display: flex; flex-direction: row-reverse; flex: 1; overflow: hidden; padding: 8px; gap: 8px; background: #000; align-items: flex-start; justify-content: center; }
+        .reel-container { width: 90px; height: 540px; position: relative; background: #000; border: 2px solid #444; border-radius: 4px; flex-shrink: 0; overflow: hidden; touch-action: none; }
         .reel-strip { position: absolute; width: 100%; top: 0; left: 0; will-change: transform; }
-        .symbol { height: 60px; display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); position: relative; font-size: 10px; box-sizing: border-box; }
-        .sym-idx { width: 26px; flex-shrink: 0; text-align: center; color: var(--c-accent); font-weight: bold; height: 100%; display: flex; align-items: center; justify-content: center; background: #111; border-right: 1px solid #333; z-index: 2; font-size: 11px; }
-        .sym-bg { position: absolute; top: 0; left: 26px; right: 0; bottom: 0; z-index: 1; background-color: #000; background-repeat: no-repeat; background-position: center; }
-        .target-box { position: absolute; top: 120px; left: 0; width: 100%; height: 180px; border: 3px solid #ff0000; pointer-events: none; z-index: 10; box-shadow: inset 0 0 10px rgba(255,0,0,0.2); }
-        .results { flex: 1; height: 420px; background: #1a1a1a; border: 1px solid #333; overflow-y: auto; border-radius: 4px; display: flex; flex-direction: column; }
-        .res-row { display: flex; border-bottom: 1px solid #333; min-height: 40px; align-items: center; padding: 0 8px; font-family: monospace; }
-        .res-name { width: 90px; font-size: 11px; font-weight: bold; flex-shrink: 0; line-height: 1.2; }
-        .res-data { flex: 1; text-align: right; font-size: 13px; color: #ddd; word-break: break-all; }
-        .res-slip { display: inline-block; padding: 2px 6px; margin-left: 4px; background: #333; border-radius: 3px; font-weight: bold; color: #fff; min-width: 25px; text-align: center; }
-        .f-bell { border-left: 4px solid #ffeb3b; color: #ffeb3b; }
-        .f-suika { border-left: 4px solid #00e676; color: #00e676; }
-        .f-cher { border-left: 4px solid #ff4081; color: #ff4081; }
-        .f-rep { border-left: 4px solid #80d8ff; color: #80d8ff; }
-        .f-hazure { border-left: 4px solid #888; color: #aaa; }
-        .f-tok { border-left: 4px solid #e040fb; color: #e040fb; }
+        .symbol { height: 60px; display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); box-sizing: border-box; }
+        .sym-idx { width: 24px; text-align: center; color: var(--c-accent); font-weight: bold; font-size: 11px; height: 100%; display: flex; align-items: center; justify-content: center; background: #111; border-right: 1px solid #333; }
+        .sym-bg { flex: 1; height: 100%; background-color: #000; background-repeat: no-repeat; background-position: center; background-size: 85%; }
+        .target-box { position: absolute; top: 180px; left: 0; width: 100%; height: 180px; border: 4px solid #f00; pointer-events: none; z-index: 10; box-shadow: inset 0 0 10px rgba(255,0,0,0.3); }
+        .results { flex: 1; height: 540px; background: #111; border: 1px solid #333; overflow-y: auto; border-radius: 4px; display: flex; flex-direction: column; }
+        .res-row { display: flex; align-items: center; border-bottom: 1px solid #222; height: 34px; padding: 0 6px; font-family: monospace; }
+        .res-row:nth-child(odd) { background: rgba(255,255,255,0.03); }
+        .res-name { width: 110px; font-size: 12px; font-weight: bold; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1; }
+        .res-data { flex: 1; display: flex; justify-content: flex-end; align-items: center; flex-wrap: nowrap; overflow: hidden; }
+        .res-slip { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; margin-left: 1px; background: #222; border: 1px solid #444; border-radius: 2px; font-size: 13px; font-weight: bold; color: #eee; flex-shrink: 0; }
+        .f-bell { border-left: 4px solid #ffeb3b; } .f-bell .res-name { color: #ffeb3b; }
+        .f-suika { border-left: 4px solid #00e676; } .f-suika .res-name { color: #00e676; }
+        .f-cher { border-left: 4px solid #ff4081; } .f-cher .res-name { color: #ff4081; }
+        .f-rep { border-left: 4px solid #80d8ff; } .f-rep .res-name { color: #80d8ff; }
+        .f-hazure { border-left: 4px solid #888; } .f-hazure .res-name { color: #aaa; }
+        .f-tok { border-left: 4px solid #e040fb; } .f-tok .res-name { color: #e040fb; }
     </style>
 </head>
 <body>
@@ -62,7 +63,7 @@
 const n = null;
 const MASTER_RAW = {
     left: {
-        bonus_unestablished: `21 1 2 1 1 2 3 2 2 4 4 4 null null null null null\n20 0 0 2 0 3 4 0 0 1 1 1 null null null null null\n19 0 1 3 1 4 4 0 0 2 2 2 null null null null null\n18 1 1 0 1 0 0 2 2 3 3 3 null null null null null\n17 0 0 1 0 0 1 1 1 4 4 4 null null null null null\n16 2 1 2 1 1 2 3 3 0 0 0 null null null null null\n15 3 2 3 2 2 3 3 3 1 1 1 null null null null null\n14 3 3 1 3 3 4 4 4 0 0 2 null null null null null\n13 0 4 2 4 4 4 0 0 1 1 1 null null null null null\n12 1 0 3 0 0 1 1 1 2 2 4 null null null null null\n11 0 1 0 0 1 2 1 1 3 3 3 null null null null null\n10 1 0 1 1 2 3 2 2 4 4 4 null null null null null\n9 2 1 2 1 3 4 2 2 1 1 1 null null null null null\n8 0 2 0 2 4 0 3 3 2 2 2 null null null null null\n7 1 0 1 0 0 0 4 4 3 3 3 null null null null null\n6 2 1 2 1 2 1 1 1 0 0 0 null null null null null\n5 3 2 3 2 2 3 3 3 1 1 1 null null null null null\n4 4 3 1 3 3 4 3 3 0 0 2 null null null null null\n3 0 4 2 4 4 4 0 0 1 1 1 null null null null null\n2 1 0 3 0 0 0 0 0 2 2 4 null null null null null\n1 1 1 0 0 1 2 1 1 3 3 3 null null null null null`,
+        bonus_unestablished: `21 1 2 1 1 2 3 2 2 4 4 4 n n n n n\n20 0 0 2 0 3 4 0 0 1 1 1 n n n n n\n19 0 1 3 1 4 4 0 0 2 2 2 n n n n n\n18 1 1 0 1 0 0 2 2 3 3 3 n n n n n\n17 0 0 1 0 0 1 1 1 4 4 4 n n n n n\n16 2 1 2 1 1 2 3 3 0 0 0 n n n n n\n15 3 2 3 2 2 3 3 3 1 1 1 n n n n n\n14 3 3 1 3 3 4 4 4 0 0 2 n n n n n\n13 0 4 2 4 4 4 0 0 1 1 1 n n n n n\n12 1 0 3 0 0 1 1 1 2 2 4 n n n n n\n11 0 1 0 0 1 2 1 1 3 3 3 n n n n n\n10 1 0 1 1 2 3 2 2 4 4 4 n n n n n\n9 2 1 2 1 3 4 2 2 1 1 1 n n n n n\n8 0 2 0 2 4 0 3 3 2 2 2 n n n n n\n7 1 0 1 0 0 0 4 4 3 3 3 n n n n n\n6 2 1 2 1 2 1 1 1 0 0 0 n n n n n\n5 3 2 3 2 2 3 3 3 1 1 1 n n n n n\n4 4 3 1 3 3 4 3 3 0 0 2 n n n n n\n3 0 4 2 4 4 4 0 0 1 1 1 n n n n n\n2 1 0 3 0 0 0 0 0 2 2 4 n n n n n\n1 1 1 0 0 1 2 1 1 3 3 3 n n n n n`,
         x_big_established: `21 3 2 1 2 2 2 3 3 4 4 4 3 1 1 3 3\n20 4 0 2 0 3 4 4 4 1 1 1 4 0 2 4 4\n19 0 1 0 1 4 4 0 0 2 2 2 4 0 0 2 0\n18 1 1 1 1 0 0 2 2 3 3 3 1 1 1 2 1\n17 0 0 1 0 0 1 1 1 4 4 4 1 2 2 4 0\n16 2 1 3 1 1 1 3 3 0 0 0 1 3 2 3 2\n15 2 2 3 2 2 3 3 3 1 1 1 4 3 4 3 2\n14 3 3 4 3 3 4 4 4 0 0 2 4 4 4 3 3\n13 0 4 0 4 0 4 0 0 1 1 1 0 0 0 0 0\n12 1 0 0 0 0 1 1 1 2 2 4 1 1 1 1 1\n11 0 1 1 1 1 1 0 0 3 3 3 0 0 0 0 0\n10 1 0 2 0 3 2 1 1 4 4 4 1 1 1 0 1\n9 1 1 4 1 4 4 2 2 1 1 1 2 2 1 2 1\n8 1 2 0 2 0 0 3 3 2 2 2 3 2 1 1 1\n7 1 0 1 0 0 0 4 4 3 3 1 4 2 3 4 3\n6 1 1 2 1 1 1 1 1 0 0 0 2 4 3 3 3\n5 3 2 2 2 3 2 2 2 1 1 1 2 4 4 4 4\n4 3 3 4 3 3 3 3 3 0 0 0 4 4 3 4 3\n3 0 4 0 4 0 4 0 0 1 1 1 0 0 0 0 0\n2 1 0 1 0 0 0 1 1 2 2 2 1 1 1 1 1\n1 2 1 0 1 1 1 2 2 3 3 3 2 0 0 2 2`,
         seven_big_established: `21 1 2 0 2 2 3 2 2 4 4 4 2 1 1 1 1\n20 0 1 1 0 3 4 0 0 0 1 1 3 0 0 0 0\n19 0 0 1 1 4 4 0 0 1 2 2 0 0 1 0 0\n18 1 2 1 1 0 0 0 0 2 3 3 0 1 2 1 1\n17 1 0 0 0 0 1 1 1 3 4 4 0 2 1 0 0\n16 1 1 1 1 1 1 3 3 0 0 0 3 3 2 3 3\n15 4 2 0 2 2 2 3 3 1 1 1 2 3 3 3 3\n14 4 3 3 3 3 4 4 4 2 0 2 3 4 4 3 3\n13 4 4 4 4 4 0 0 0 1 1 1 0 4 0 4 0\n12 1 0 1 0 0 1 1 1 4 2 4 0 1 1 1 1\n11 2 1 4 1 1 2 1 1 3 3 3 1 0 2 0 2\n10 3 2 1 0 2 3 2 2 4 4 4 1 1 1 1 1\n9 4 1 1 1 3 4 2 2 2 1 1 2 2 2 2 2\n8 0 4 3 2 4 0 3 3 3 2 2 3 2 3 2 2\n7 0 0 0 0 0 0 4 4 4 3 3 4 2 3 2 2\n6 2 4 1 1 2 2 1 1 0 0 0 1 4 3 4 4\n5 2 2 0 2 2 2 2 2 1 1 1 3 4 4 4 4\n4 4 3 1 3 3 4 3 3 2 0 2 3 4 3 4 4\n3 0 4 4 4 4 0 0 0 1 1 1 0 0 0 0 0\n2 1 0 3 0 0 1 0 0 4 2 4 0 1 1 1 1\n1 0 1 4 1 1 2 1 1 3 3 3 1 0 0 0 0`,
         reg_bonus_established: `21 1 2 2 2 2 3 2 2 4 4 4 1 1 1 1 1\n20 0 1 0 0 3 4 0 0 1 1 1 0 0 0 2 0\n19 0 0 1 1 4 4 0 0 2 2 2 0 1 1 0 0\n18 1 2 1 1 0 0 0 0 3 3 3 0 2 2 1 1\n17 0 0 0 0 0 1 1 1 4 4 4 1 1 1 0 0\n16 3 1 1 1 1 1 3 3 0 0 0 2 2 2 2 3\n15 3 2 2 2 2 2 3 3 1 1 1 3 3 3 2 3\n14 3 3 3 3 3 4 4 4 0 0 0 4 4 4 3 3\n13 0 4 4 4 4 0 0 0 1 1 1 0 0 0 0 0\n12 1 0 0 0 0 1 1 1 2 2 2 1 1 1 1 1\n11 2 1 1 1 1 2 2 2 3 3 3 2 0 2 0 0\n10 3 2 0 0 2 3 3 3 4 4 4 3 1 1 1 1\n9 4 1 1 1 3 4 4 4 4 4 4 4 2 2 1 2\n8 2 4 2 2 4 0 3 3 2 2 2 3 3 3 1 3\n7 2 0 0 0 0 0 4 4 3 3 1 4 3 3 3 4\n6 2 4 1 1 2 2 1 1 0 0 0 3 3 3 3 4\n5 2 2 2 2 2 2 2 2 1 1 1 4 4 4 4 4\n4 4 3 3 3 3 4 3 3 0 0 2 3 3 3 3 4\n3 0 4 4 4 4 0 0 0 1 1 1 0 0 0 0 0\n2 1 0 0 0 0 1 0 0 2 2 4 1 1 1 1 1\n1 0 1 1 1 1 2 1 1 3 3 3 0 0 0 0 0`
@@ -80,23 +81,18 @@ const MASTER_RAW = {
         reg_bonus_established: `21 1 0 0 0 3 3 1 1 1 1 1 1 1 1 1 1\n20 0 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0\n19 1 2 2 2 1 1 1 1 1 1 1 1 1 1 1 1\n18 0 3 3 3 2 2 0 0 0 0 0 0 0 0 0 0\n17 3 0 0 0 3 3 3 3 1 1 1 1 1 1 1 1\n16 2 1 1 1 0 0 2 2 2 2 2 2 2 2 2 2\n15 3 2 2 2 1 1 3 3 3 3 3 3 3 3 3 3\n14 4 3 3 3 2 2 4 4 4 4 4 4 4 4 4 4\n13 1 0 0 0 3 3 1 1 3 3 3 0 3 3 3 3\n12 2 1 1 1 4 4 2 2 2 2 2 0 4 4 4 4\n11 0 2 2 2 0 0 0 0 0 0 0 0 0 0 0 0\n10 4 3 3 3 1 1 4 4 4 4 4 1 1 1 1 1\n9 0 4 4 4 2 2 0 0 2 2 2 2 2 2 0 2\n8 1 0 0 0 3 3 1 1 1 1 1 3 3 3 1 3\n7 0 1 1 1 0 0 0 0 0 0 0 4 4 4 0 4\n6 1 2 2 2 1 1 1 1 1 1 1 1 1 1 1 1\n5 0 3 3 3 2 2 0 0 0 0 0 0 0 0 0 0\n4 3 0 0 0 3 3 3 3 3 3 3 1 1 1 1 1\n3 2 1 1 1 0 0 2 2 2 2 2 2 2 2 2 2\n2 3 2 2 2 1 1 3 3 3 3 3 3 3 3 3 3\n1 4 3 3 3 2 2 4 4 4 4 4 4 4 4 4 4`
     }
 };
-
-const FLAG_DEFS = [
-    {k:"hazure",n:"ハズレ",c:"hazure"},{k:"rep_n",n:"通常リプ",c:"rep"},{k:"rep_j",n:"JACリプ",c:"rep"},{k:"rep_r",n:"RTリプ",c:"rep"},
-    {k:"bell_a",n:"ベルA",c:"bell"},{k:"bell_b",n:"ベルB",c:"bell"},{k:"sui_a",n:"氷A",c:"suika"},{k:"sui_b",n:"氷B",c:"suika"},
-    {k:"cher_a",n:"チェA",c:"cher"},{k:"cher_b",n:"チェB",c:"cher"},
-    {k:"t_a",n:"特A",c:"tok"},{k:"t_b",n:"特B",c:"tok"},{k:"t_c",n:"特C",c:"tok"},{k:"t_d",n:"特D",c:"tok"},{k:"t_e",n:"特E",c:"tok"}
-];
-
+const FLAG_DEFS = [ {k:"hazure",n:"ハズレ",c:"hazure"},{k:"replay_normal",n:"通常リプレイ",c:"rep"},{k:"replay_jac",n:"ＪＡＣリプレイ",c:"rep"},{k:"replay_rt",n:"ＲＴリプレイ",c:"rep"},{k:"bell_a",n:"ベルＡ",c:"bell"},{k:"bell_b",n:"ベルＢ",c:"bell"},{k:"watermelon_a",n:"スイカＡ",c:"suika"},{k:"watermelon_b",n:"スイカＢ",c:"suika"},{k:"cherry_a",n:"チェリーＡ",c:"cher"},{k:"cherry_b",n:"チェリーＢ",c:"cher"},{k:"special_a",n:"特殊役Ａ",c:"tok"},{k:"special_b",n:"特殊役Ｂ",c:"tok"},{k:"special_c",n:"特殊役Ｃ",c:"tok"},{k:"special_d",n:"特殊役Ｄ",c:"tok"},{k:"special_e",n:"特殊役Ｅ",c:"tok"} ];
+const REEL_SYMS = {
+    left: ["Sui","Cher","Don","Bell","Rep","Sui","Bell","Rep","Seven","Bell","Rep","Cher","Bar","Bell","Rep","Sui","Don","Don","Don","Rep","Bell"],
+    middle: ["Bell","Cher","Rep","Bell","Cher","Sui","Seven","Sui","Bell","Bar","Cher","Rep","Bell","Cher","Don","Rep","Bell","Cher","Sui","Cher","Rep"],
+    right: ["Cher","Bell","Sui","Rep","Cher","Seven","Bell","Sui","Rep","Cher","Bell","Rep","Bar","Cher","Bell","Sui","Rep","Don","Bell","Sui","Rep"]
+};
 let solvedDB = {left:{}, middle:{}, right:{}};
-let curState = 'bonus_unestablished'; let curReel = 'left'; let curStop = 21;
-
 function build() {
     for(const r in solvedDB) {
         for(const s in MASTER_RAW[r]) {
             solvedDB[r][s] = Array.from({length:21}, ()=>({}));
-            const lines = MASTER_RAW[r][s].trim().split('\n');
-            lines.forEach(line => {
+            MASTER_RAW[r][s].trim().split('\n').forEach(line => {
                 const cols = line.trim().split(/\s+/);
                 const rawP = parseInt(cols[0], 10);
                 const P = (rawP % 21) + 1; // ズレ補正
@@ -111,48 +107,43 @@ function build() {
         }
     }
 }
-
-const REEL_SYMS = {
-    left: ["Sui","Cher","Don","Bell","Rep","Sui","Bell","Rep","Seven","Bell","Rep","Cher","Bar","Bell","Rep","Sui","Don","Don","Don","Rep","Bell"],
-    middle: ["Bell","Cher","Rep","Bell","Cher","Sui","Seven","Sui","Bell","Bar","Cher","Rep","Bell","Cher","Don","Rep","Bell","Cher","Sui","Cher","Rep"],
-    right: ["Cher","Bell","Sui","Rep","Cher","Seven","Bell","Sui","Rep","Cher","Bell","Rep","Bar","Cher","Bell","Sui","Rep","Don","Bell","Sui","Rep"]
-};
-
 const app = {
+    state: { reel: 'left', flagMode: 'bonus_unestablished', stopNum: 21 },
     init() { build(); this.render(); this.attach(); this.update(); },
     render() {
         const win = document.getElementById('reel-strip'); win.innerHTML = '';
+        const syms = REEL_SYMS[this.state.reel];
         for(let l=0; l<3; l++) {
-            REEL_SYMS[curReel].forEach((s, i) => {
+            syms.forEach((s, i) => {
                 const el = document.createElement('div'); el.className = 'symbol';
-                el.innerHTML = `<div class="sym-idx">${21-i}</div><div class="sym-bg" style="background-image:url('reel${(curReel==='left'?1:curReel==='middle'?2:3)}.png');background-position:center -${i*60}px;background-size:100% 1260px"></div>`;
+                el.innerHTML = `<div class="sym-idx">${21-i}</div><div class="sym-bg" style="background-image:url('reel${(this.state.reel==='left'?1:this.state.reel==='middle'?2:3)}.png');background-position:center -${i*60}px;background-size:100% 1260px"></div>`;
                 win.appendChild(el);
             });
         }
     },
     update() {
         const list = document.getElementById('result-list'); list.innerHTML = '';
-        const data = solvedDB[curReel][curState][curStop-1];
+        const data = solvedDB[this.state.reel][this.state.flagMode][this.state.stopNum-1];
         if(data) {
             FLAG_DEFS.forEach(fd => {
                 if(data[fd.k]) {
                     const slips = [...new Set(data[fd.k])].sort((a,b)=>b-a);
                     const row = document.createElement('div'); row.className = `res-row f-${fd.c}`;
-                    row.innerHTML = `<div class="res-name">${fd.n}</div><div class="res-data">${slips.map(s=>`<span class="res-slip">[${s}]</span>`).join('')}</div>`;
+                    row.innerHTML = `<div class="res-name">${fd.n}</div><div class="res-data">${slips.map(s=>`<span class="res-slip">${s}</span>`).join('')}</div>`;
                     list.appendChild(row);
                 }
             });
         }
-        const y = -(21*60) - ((21-curStop)*60) + 120; // 最終版.html座標
+        const y = -(21*60) - ((21-this.state.stopNum)*60) + 240; // index.html座標
         document.getElementById('reel-strip').style.transform = `translate3d(0, ${y}px, 0)`;
     },
-    setStop(r) { curReel = r; document.querySelectorAll('.stop-tab').forEach(el => el.classList.toggle('active', el.id === `t-${r}`)); this.render(); this.update(); },
-    setState(s) { curState = s; document.querySelectorAll('.state-tab').forEach(el => el.classList.toggle('active', el.id === `s-${s}`)); this.update(); },
+    setStop(r) { this.state.reel = r; document.querySelectorAll('.stop-tab').forEach(el => el.classList.toggle('active', el.id === `t-${r}`)); this.render(); this.update(); },
+    setState(s) { this.state.flagMode = s; document.querySelectorAll('.state-tab').forEach(el => el.classList.toggle('active', el.id === `s-${s}`)); this.update(); },
     attach() {
         let isD = false, sy = 0, sn = 0;
         const area = document.getElementById('touch-area');
-        const st = (y) => { isD = true; sy = y; sn = curStop; };
-        const mv = (y) => { if(!isD) return; let n = sn - Math.round((sy - y)/60); while(n>21)n-=21; while(n<1)n+=21; if(curStop!==n){curStop=n;this.update();} };
+        const st = (y) => { isD = true; sy = y; sn = this.state.stopNum; };
+        const mv = (y) => { if(!isD) return; let n = sn - Math.round((sy - y)/60); while(n>21)n-=21; while(n<1)n+=21; if(this.state.stopNum!==n){this.state.stopNum=n;this.update();} };
         area.addEventListener('touchstart', e => { st(e.touches[0].pageY); e.preventDefault(); }, {passive:false});
         window.addEventListener('touchmove', e => { mv(e.touches[0].pageY); e.preventDefault(); }, {passive:false});
         window.addEventListener('touchend', () => isD = false);
