@@ -6,7 +6,7 @@
     <title>Shin-Hanabi - Absolute Auditor</title>
     <style>
         :root { --c-bg: #111; --c-text: #eee; --c-accent: #ffd700; --c-active-border: #adff2f; }
-        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
         html, body { width: 100%; height: 100%; margin: 0; padding: 0; background: var(--c-bg); color: var(--c-text); font-family: sans-serif; overflow: hidden; display: flex; flex-direction: column; }
         .controls { padding: 5px; flex-shrink: 0; background: #222; border-bottom: 1px solid #444; }
         .tab-group { display: flex; gap: 4px; margin-bottom: 5px; overflow-x: auto; }
@@ -423,12 +423,16 @@ const app = {
         const area = document.getElementById('touch-area');
         const st = (y) => { isD = true; sy = y; sn = this.state.positions[this.state.reel]; };
         const mv = (y) => { if (!isD) return; let n = sn - Math.round((sy - y) / 60); while (n > 21) n -= 21; while (n < 1) n += 21; if (this.state.positions[this.state.reel] !== n) { this.state.positions[this.state.reel] = n; this.update(); } };
+        
         area.addEventListener('touchstart', e => { st(e.touches[0].pageY); e.preventDefault(); }, { passive: false });
-        window.addEventListener('touchmove', e => { e.preventDefault(); mv(e.touches[0].pageY); }, { passive: false });
+        window.addEventListener('touchmove', e => { if (isD) e.preventDefault(); mv(e.touches[0].pageY); }, { passive: false });
         window.addEventListener('touchend', () => isD = false);
         area.addEventListener('mousedown', e => st(e.pageY));
         window.addEventListener('mousemove', e => mv(e.pageY));
         window.addEventListener('mouseup', () => isD = false);
+        
+        // 誤ダブルタップ（ズーム）の物理抑制
+        document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
     }
 };
 window.onload = () => app.init();
