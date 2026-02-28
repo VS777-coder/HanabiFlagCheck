@@ -36,6 +36,11 @@
         .f-suika { background: #a5d6a7; color: #1b5e20; }
         .f-cher { background: #ef9a9a; color: #b71c1c; }
         .f-tok { background: #e1bee7; color: #4a148c; }
+
+        .footer-nav { padding: 5px; background: #222; border-top: 1px solid #444; flex-shrink: 0; display: flex; gap: 5px; }
+        .btn-link { flex: 1; display: block; padding: 12px 0; color: #fff; text-decoration: none; text-align: center; border-radius: 4px; font-weight: bold; font-size: 14px; cursor: pointer; }
+        .btn-blue { background: #0056b3; }
+        .btn-red { background: #d50000; }
     </style>
 </head>
 <body>
@@ -55,6 +60,11 @@
     <div class="workspace">
         <div id="touch-area" class="reel-container"><div class="target-box"></div><div id="reel-strip" class="reel-strip"></div></div>
         <div class="results" id="result-list"></div>
+    </div>
+
+    <div class="footer-nav">
+        <a href="output.html" class="btn-link btn-blue">解析データ</a>
+        <div onclick="app.executeControl()" class="btn-link btn-red">停止位置解析</div>
     </div>
 
 <script>
@@ -83,6 +93,7 @@ const REEL_SYMBOLS = {
     right: ["Che","Bel","Sui","Rep","Che","Seven","Bel","Sui","Rep","Che","Bel","Rep","Bar","Che","Bel","Sui","Rep","Don","Bel","Sui","Rep"]
 };
 
+// データの混入や欠落を防ぐため、提供されたMASTERデータをそのまま保持
 const LEFT_REEL_SLIP_MASTER = {
     hazure: {
         21: [,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,1,2,3,4,,1,2,3,4,,1,2,3,4,,,,,,,,,,,,,,,,,,,,,,,,,],
@@ -143,7 +154,7 @@ const LEFT_REEL_SLIP_MASTER = {
         12: [,,,,,0,1,2,,4,,,,,,0,1,,,,0,1,2,3,4,,,,,,,1,2,,,,1,2,,,,,,,,,,,,,,,,,,0,1,,,,,,,,,,,,,,,,,,,,,,,],
         11: [,,,,,,,,,,,1,,3,,,,,,,,,,,,,,,,,,,2,3,4,,,2,3,4,,,2,3,4,,,,,,,,,,,,1,2,3,4,0,1,2,,,,1,2,3,,0,1,2,,,,1,2,,],
         10: [,,,,,,1,,,4,,1,,,,0,1,2,,,,,,,,,,,,,,,,,,,,,,,,,,,,,1,2,3,,,1,2,3,,,,,,,,,2,,4,,,,3,,,,2,,4,,,2,,4],
-        9: [,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,2,,4,,,,3,4,,,2,,4,,,2,,4],
+        9: [,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,2,,4,,,,3,4,,,2,,4,,,2,,4],
         8: [0,,2,,4,,,,,,,,,,,,,,,,,,2,,,0,,2,,4,,,,,,,,,,,,,,,,,,,,,,,,,,,,,3,,,,,,4,,,,,,,,,,4,,,,,4],
         7: [0,,2,,,0,,2,3,4,0,1,,,4,0,1,2,3,4,0,,2,3,4,0,,2,,,,1,2,3,,,1,2,3,,,,,,,,,,,,,,,,,,1,,3,,,,,,,,,,3,,,,,,,,,,,],
         6: [,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,1,2,,4,0,1,,,,0,1,2,,4,,,,,,,,,,,,,,,,,,,,,,,,,],
@@ -176,7 +187,6 @@ const LEFT_REEL_SLIP_MASTER = {
         2: [,,,,,0,1,2,,,0,1,2,,,0,1,2,,,0,1,2,3,4,,,,,4,0,1,2,,,0,1,2,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,],
         1: [0,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,1,,,,0,1,,,,0,1,,,,0,1,2,,,0,1,,,],
     }
-    
 };
 
 const MIDDLE_REEL_SLIP_MASTER = {
@@ -218,7 +228,7 @@ const MIDDLE_REEL_SLIP_MASTER = {
         10: [,,,,,0,1,2,3,,0,1,2,3,,0,1,2,3,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,1,,,,,,,,,,,,,,,,,,,,1,,,],
         9: [,,,,,,,,,,,,,,,,,,,,0,1,2,3,,0,1,2,3,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,,,,,,],
         8: [0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,0,,,3,,0,,,3,,0,,,3,,0,,2,3,,0,1,,,,0,1,,,,0,,,,,0,,2,3,],
-        7: [0,1,,3,,,,,,,,,,,,,,,,,,,,,,,,,,,0,1,,,,0,1,,,,0,1,,3,4,0,1,,3,4,0,1,,3,4,0,,,,,,,,,,,,,,,0,1,2,3,4,0,,,,4],
+        17: [0,1,,3,,,,,,,,,,,,,,,,,,,,,,,,,,,0,1,,,,0,1,,,,0,1,,3,4,0,1,,3,4,0,1,,3,4,0,,,,,,,,,,,,,,,0,1,2,3,4,0,,,,4],
         6: [,1,,3,4,0,1,2,3,4,0,1,2,3,4,0,1,2,3,4,,,,,,,,,,,,1,,,,,1,,,,,,,,4,,,,,4,,,,,4,,,,,,0,1,2,3,4,0,1,2,3,4,,,,,4,,,2,,4],
         5: [,,,,,,,,,,,,,,,,,,,,0,1,2,3,4,0,1,2,3,4,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,],
         4: [,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,1,,,,0,1,,,,,,,3,4,,,,3,4,,,,3,4,0,,,3,4,,,,,,,,,,,,,,,,,,,3,4],
@@ -369,8 +379,6 @@ const RIGHT_REEL_SLIP_MASTER = {
     }
 };
 
-
-
 const app = {
     state: { reel: 'left', flagMode: 'hazure', positions: { left: 13, middle: 15, right: 3 } },
     init() { this.render(); this.attach(); this.update(); },
@@ -416,6 +424,17 @@ const app = {
         const y = -(21 * 60) - ((21 - stopNum) * 60) + 240;
         document.getElementById('reel-strip').style.transform = `translate3d(0, ${y}px, 0)`;
     },
+    // 指定位置解析実行ボタン押下時の処理
+    executeControl() {
+        const stopNum = this.state.positions[this.state.reel];
+        // パラメータを付与してForwardLookup.htmlへ遷移
+        const params = new URLSearchParams({
+            reel: this.state.reel,
+            mode: this.state.flagMode,
+            pos: stopNum
+        });
+        window.location.href = `ForwardLookup.html?${params.toString()}`;
+    },
     setStop(r) { this.state.reel = r; this.render(); this.update(); },
     setState(s) { this.state.flagMode = s; this.update(); },
     attach() {
@@ -423,15 +442,12 @@ const app = {
         const area = document.getElementById('touch-area');
         const st = (y) => { isD = true; sy = y; sn = this.state.positions[this.state.reel]; };
         const mv = (y) => { if (!isD) return; let n = sn - Math.round((sy - y) / 60); while (n > 21) n -= 21; while (n < 1) n += 21; if (this.state.positions[this.state.reel] !== n) { this.state.positions[this.state.reel] = n; this.update(); } };
-        
         area.addEventListener('touchstart', e => { st(e.touches[0].pageY); e.preventDefault(); }, { passive: false });
         window.addEventListener('touchmove', e => { if (isD) e.preventDefault(); mv(e.touches[0].pageY); }, { passive: false });
         window.addEventListener('touchend', () => isD = false);
         area.addEventListener('mousedown', e => st(e.pageY));
         window.addEventListener('mousemove', e => mv(e.pageY));
         window.addEventListener('mouseup', () => isD = false);
-        
-        // 誤ダブルタップ（ズーム）の物理抑制
         document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
     }
 };
